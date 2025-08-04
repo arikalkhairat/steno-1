@@ -17,11 +17,11 @@ document.addEventListener('DOMContentLoaded', function () {
     hideResult('validateResult');
     showProcessDetails('validateProcess');
     clearLog('validateLog');
-    
+
     // Reset status and statistics
     updateProgressText('Memulai validasi dokumen...', 'processing');
     updateQRStatus('processing', 'Memproses dokumen...');
-    
+
     // Hide panels that will be shown later
     document.getElementById('bindingValidationPanel').classList.add('hidden');
     document.getElementById('bindingResults').classList.add('hidden');
@@ -55,16 +55,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Store extracted QR data for binding validation
         extractedQRData = result.extracted_qrs || [];
-        
+
         // Update progress text
         updateProgressText('Ekstraksi selesai, memproses hasil...', 'processing');
-        
+
         // Calculate processing time
         const processingTime = Date.now() - startTime;
-        
+
         // Update statistics
         updateValidationStatistics(extractedQRData, processingTime);
-        
+
         // Update QR status
         if (extractedQRData.length > 0) {
           updateQRStatus('success', `${extractedQRData.length} QR Code ditemukan`);
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         updateProgressText('Validasi gagal', 'error');
         updateQRStatus('error', 'Validasi gagal');
-        
+
         if (result.error_type === 'NO_IMAGES_FOUND') {
           addLogEntry('validateLog', '⚠️ Dokumen tidak mengandung gambar', 'warning');
           showAlert('validateAlert', `
@@ -165,7 +165,7 @@ async function validateBinding() {
   showProgress('validateProgress');
   document.getElementById('bindingResults').classList.add('hidden');
   document.getElementById('securityAnalysis').classList.add('hidden');
-  
+
   // Update progress status
   updateProgressText('Memvalidasi binding QR-Dokumen...', 'processing');
   updateQRStatus('processing', 'Validasi binding sedang berjalan...');
@@ -176,7 +176,7 @@ async function validateBinding() {
 
   const deepValidation = document.getElementById('deepValidation').checked;
   const checkExpiry = document.getElementById('checkExpiry').checked;
-  
+
   // Start timing
   const bindingStartTime = Date.now();
 
@@ -238,14 +238,14 @@ async function validateBinding() {
 
     // Calculate total binding validation time
     const bindingProcessingTime = Date.now() - bindingStartTime;
-    
+
     // Display validation results
     displayBindingResults(validationResults, bindingProcessingTime);
 
     // Generate security analysis
     generateSecurityAnalysis(validationResults);
 
-    addLogEntry('validateLog', `🏁 Validasi binding selesai dalam ${(bindingProcessingTime/1000).toFixed(1)}s. Hasil: ${validationResults.filter(r => r.success).length}/${validationResults.length} berhasil`, 'info');
+    addLogEntry('validateLog', `🏁 Validasi binding selesai dalam ${(bindingProcessingTime / 1000).toFixed(1)}s. Hasil: ${validationResults.filter(r => r.success).length}/${validationResults.length} berhasil`, 'info');
 
   } catch (error) {
     addLogEntry('validateLog', `❌ Error validasi binding: ${error.message}`, 'error');
@@ -258,7 +258,7 @@ async function validateBinding() {
 }
 
 // Display Binding Validation Results
-function displayBindingResults(results) {
+function displayBindingResults(results, processingTime = 0) {
   let html = '';
 
   results.forEach(result => {
@@ -365,12 +365,11 @@ function displayBindingResults(results) {
 
   document.getElementById('bindingValidationContent').innerHTML = html;
   document.getElementById('bindingResults').classList.remove('hidden');
-  
+
   // Update validation statistics with binding results
-  const processingTime = 0; // This will be calculated in the calling function
   const averageConfidence = results.filter(r => r.success && r.validation && r.validation.confidence)
     .reduce((sum, r) => sum + r.validation.confidence, 0) / Math.max(results.filter(r => r.success).length, 1);
-  
+
   updateValidationStatistics(extractedQRData, processingTime, averageConfidence);
 }
 
@@ -452,7 +451,7 @@ function generateSecurityAnalysis(results) {
 
   document.getElementById('securityAnalysisContent').innerHTML = html;
   document.getElementById('securityAnalysis').classList.remove('hidden');
-  
+
   // Update progress text to show completion
   updateProgressText('Validasi binding selesai', 'success');
   updateQRStatus('success', `${validBindings}/${totalQRs} binding valid`);

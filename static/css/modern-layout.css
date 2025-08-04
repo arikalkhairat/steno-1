@@ -1327,3 +1327,76 @@
 .hidden {
     display: none !important;
 }
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+    .statistics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .validate-desktop-layout {
+        flex-direction: column;
+    }
+    
+    .validate-left-column,
+    .validate-right-column {
+        width: 100%;
+    }
+    
+    .statistics-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+    
+    .stat-number {
+        font-size: 1.5rem;
+    }
+}
+
+/* Enhanced animations */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.statistics-panel.show,
+.security-analysis-panel.show,
+.binding-results-panel.show {
+    animation: slideInUp 0.3s ease-out;
+}
+
+/* Progress bar enhancements */
+.progress-bar {
+    background: #f1f5f9;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 8px;
+    margin-bottom: 1rem;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    border-radius: 8px;
+    transition: width 0.3s ease;
+}
+
+/* Status badge animations */
+.status-badge {
+    transition: all 0.3s ease;
+}
+
+.status-badge:hover {
+    transform: scale(1.05);
+}
