@@ -21,33 +21,11 @@
                         <i class="fas fa-keyboard"></i> Data QR Code
                     </label>
                     <textarea id="qrData" name="qrData" class="form-input qr-textarea" 
-                              placeholder="Masukkan teks untuk QR Code..." required rows="3"></textarea>
-                    
-                    <!-- Compact Character Counter -->
-                    <div class="character-counter-compact">
-                        <div class="counter-info">
-                            <span class="char-count" id="charCount">0</span>
-                            <span class="char-limit">/ 500</span>
-                            <span class="char-status" id="charStatus">Optimal</span>
-                        </div>
-                        <div class="counter-bar">
-                            <div class="counter-fill" id="counterFill"></div>
-                        </div>
-                    </div>
+                              placeholder="Masukkan teks untuk QR Code..." required rows="1"></textarea>
                 </div>
                 
                 <!-- Inline Configuration -->
                 <div class="config-inline">
-                    <div class="config-item">
-                        <label for="errorCorrection">Error Correction</label>
-                        <select id="errorCorrection" class="form-select-compact" title="Level koreksi error QR Code">
-                            <option value="L">L (7%)</option>
-                            <option value="M" selected>M (15%)</option>
-                            <option value="Q">Q (25%)</option>
-                            <option value="H">H (30%)</option>
-                        </select>
-                    </div>
-                    
                     <div class="config-item">
                         <label for="qrSize">Ukuran</label>
                         <select id="qrSize" class="form-select-compact" title="Ukuran QR Code">
@@ -63,14 +41,6 @@
                         <div class="range-compact">
                             <input type="range" id="borderSize" min="1" max="10" value="4" class="form-range-compact" title="Ukuran border QR Code">
                             <span class="range-value-compact" id="borderValue">4</span>
-                        </div>
-                    </div>
-                    
-                    <div class="config-item">
-                        <label>Warna</label>
-                        <div class="color-compact">
-                            <input type="color" id="fillColor" value="#000000" class="form-color-compact" title="Warna foreground QR Code">
-                            <input type="color" id="backColor" value="#ffffff" class="form-color-compact" title="Warna background QR Code">
                         </div>
                     </div>
                 </div>
@@ -121,45 +91,6 @@
                         <span class="metric-label">Use</span>
                         <span class="metric-value" id="qrDensity">-</span>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Capacity Analysis - Bottom Left -->
-        <div class="capacity-section">
-            <div class="section-header">
-                <i class="fas fa-chart-bar"></i>
-                <h3>Analisis Kapasitas</h3>
-            </div>
-            
-            <!-- Usage Meter -->
-            <div class="usage-meter-compact">
-                <div class="meter-info">
-                    <span>Penggunaan:</span>
-                    <span class="meter-percentage" id="usagePercentage">0%</span>
-                </div>
-                <div class="meter-bar">
-                    <div class="meter-fill" id="usageFill"></div>
-                </div>
-            </div>
-            
-            <!-- Error Correction Levels -->
-            <div class="levels-compact">
-                <div class="level-item-compact" data-level="L">
-                    <span class="level-name">L</span>
-                    <span class="level-capacity" id="capacityL">-</span>
-                </div>
-                <div class="level-item-compact" data-level="M">
-                    <span class="level-name">M</span>
-                    <span class="level-capacity" id="capacityM">-</span>
-                </div>
-                <div class="level-item-compact" data-level="Q">
-                    <span class="level-name">Q</span>
-                    <span class="level-capacity" id="capacityQ">-</span>
-                </div>
-                <div class="level-item-compact" data-level="H">
-                    <span class="level-name">H</span>
-                    <span class="level-capacity" id="capacityH">-</span>
                 </div>
             </div>
         </div>

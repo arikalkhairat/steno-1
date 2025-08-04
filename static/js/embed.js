@@ -1,5 +1,8 @@
 // Secure Document Embedding - Integrated Workflow Handler
 document.addEventListener('DOMContentLoaded', function () {
+  // Initialize network monitoring
+  initNetworkMonitoring();
+
   // Initialize the integrated embed form
   initializeEmbedForm();
 
@@ -11,6 +14,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Initialize real-time QR preview
   initQRPreview();
+
+  // Initialize results tabs and accordion
+  initializeResultsTabs();
+  initializeAccordion();
+
+  // Initialize grid navigation
+  initializeGridNavigation();
 });
 
 function initializeEmbedForm() {
@@ -278,14 +288,24 @@ async function generateQRPreview(text) {
     // Show loading state
     qrPreview.innerHTML = '<div class="qr-loading"><i class="fas fa-spinner fa-spin"></i><span>Generating preview...</span></div>';
 
-    // Make request to generate QR preview
+    // Add timeout and better error handling for QR preview
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 seconds timeout
+
     const response = await fetch('/generate_qr_preview', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ data: text })
+      body: JSON.stringify({ data: text }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
 
     const result = await response.json();
 
@@ -302,7 +322,15 @@ async function generateQRPreview(text) {
     }
   } catch (error) {
     console.error('QR preview error:', error);
-    qrPreview.innerHTML = '<div class="qr-error"><i class="fas fa-exclamation-triangle"></i><span>Preview unavailable</span></div>';
+
+    let errorMessage = 'Preview unavailable';
+    if (error.name === 'AbortError') {
+      errorMessage = 'Preview timeout';
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      errorMessage = 'Network error';
+    }
+
+    qrPreview.innerHTML = `<div class="qr-error"><i class="fas fa-exclamation-triangle"></i><span>${errorMessage}</span></div>`;
   }
 }
 
@@ -364,6 +392,66 @@ function updateSecurityStatus(expiryHours) {
   securitySubtitle.textContent = `QR binding expires in ${timeText}`;
 }
 
+// Separate function to make embed request with proper error handling
+async function makeEmbedRequest(formData) {
+  let response;
+  try {
+    // Add timeout to prevent hanging requests
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes timeout
+
+    response = await fetch('/embed_document_secure', {
+      method: 'POST',
+      body: formData,
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    // Check if response is ok
+    if (!response.ok) {
+      let errorMessage = `Server error: ${response.status} ${response.statusText}`;
+
+      // Try to get more detailed error from response
+      try {
+        const errorData = await response.json();
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } catch (jsonError) {
+        // If can't parse JSON, use status text
+        console.warn('Could not parse error response as JSON:', jsonError);
+      }
+
+      throw new Error(errorMessage);
+    }
+
+  } catch (fetchError) {
+    if (fetchError.name === 'AbortError') {
+      throw new Error('Request timeout - Please try again with a smaller file or check your internet connection');
+    } else if (fetchError.message.includes('Failed to fetch') || fetchError.message.includes('NetworkError')) {
+      throw new Error('Network error - Please check your internet connection and try again');
+    } else {
+      throw fetchError; // Re-throw other errors
+    }
+  }
+
+  // Update progress to step 3
+  updateProgressStep(3, 'Processing document...');
+
+  let result;
+  try {
+    result = await response.json();
+  } catch (jsonError) {
+    console.error('Failed to parse response as JSON:', jsonError);
+    throw new Error('Invalid response from server - please try again');
+  }
+
+  return result;
+}
+
 async function handleIntegratedEmbedding(form) {
   const submitBtn = form.querySelector('button[type="submit"]');
   const originalText = submitBtn.innerHTML;
@@ -410,13 +498,37 @@ async function handleIntegratedEmbedding(form) {
     // Update progress to step 2
     updateProgressStep(2, 'Generating QR code...');
 
-    // Make request to integrated endpoint
-    const response = await fetch('/embed_document_secure', {
-      method: 'POST',
-      body: formData
-    });
+    // Make request to integrated endpoint with retry mechanism
+    const maxRetries = 2;
+    let result = null;
 
-    const result = await response.json();
+    for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
+      try {
+        // Update progress message to show retry attempt
+        if (attempt > 1) {
+          updateProgressStep(2, `Mencoba ulang... (${attempt - 1}/${maxRetries})`);
+          // Wait before retry
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        result = await makeEmbedRequest(formData);
+        break; // Success, exit retry loop
+
+      } catch (requestError) {
+        console.log(`Attempt ${attempt} failed:`, requestError.message);
+
+        // If this is the last attempt, throw the error
+        if (attempt === maxRetries + 1) {
+          throw requestError;
+        }
+
+        // For network errors, wait longer before retry
+        if (requestError.message.includes('Network error') ||
+          requestError.message.includes('timeout')) {
+          await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+      }
+    }
 
     if (result.success) {
       // Update progress to completion
@@ -425,8 +537,7 @@ async function handleIntegratedEmbedding(form) {
       // Display results
       await displayIntegratedResults(result);
 
-      // Show success message
-      showAlert('Document embedding completed successfully!', 'success');
+      // Don't show generic success message here - it's handled in displayIntegratedResults
     } else {
       // Handle specific error types
       if (result.security_error) {
@@ -442,7 +553,26 @@ async function handleIntegratedEmbedding(form) {
 
   } catch (error) {
     console.error('Embedding error:', error);
-    showAlert(error.message || 'An error occurred during processing', 'error');
+
+    // Provide more specific error messages based on error type
+    let userMessage = error.message || 'An error occurred during processing';
+
+    // Check if it's a network-related error
+    if (error.message && (
+      error.message.includes('Network error') ||
+      error.message.includes('Failed to fetch') ||
+      error.message.includes('NetworkError') ||
+      error.message.includes('timeout')
+    )) {
+      userMessage = 'Koneksi jaringan bermasalah. Silakan:';
+      showDetailedNetworkError();
+    } else if (error.message && error.message.includes('Server error')) {
+      userMessage = 'Server sedang mengalami masalah. Silakan coba lagi dalam beberapa saat.';
+    } else if (error.message && error.message.includes('Invalid response')) {
+      userMessage = 'Respons server tidak valid. Silakan refresh halaman dan coba lagi.';
+    }
+
+    showAlert(userMessage, 'error');
     hideProgressContainer();
   } finally {
     // Reset button
@@ -517,31 +647,35 @@ function updateProgressStep(stepNumber, message) {
 }
 
 async function displayIntegratedResults(result) {
-  const embedResult = document.getElementById('embedResult');
-  embedResult.style.display = 'block';
-
   // Hide progress container
   hideProgressContainer();
 
-  // Display document download
-  displayDocumentDownload(result.document);
-
-  // Display QR information
-  displayQRInformation(result.qr);
-
-  // Display security information if available
-  if (result.security && result.security.security_level !== 'none') {
-    displaySecurityInformation(result.security);
-  }
+  // Show results with new tab system
+  updateResultsDisplay(result);
 
   // Display quality metrics
   if (result.quality_metrics) {
     displayQualityMetrics(result.quality_metrics);
   }
 
-  // Display processed images
+  // Display processed images with improved loading handling
   if (result.processed_images && result.processed_images.length > 0) {
     displayProcessedImages(result.processed_images, result.public_dir);
+
+    // Show informative message about image loading instead of warning
+    showAlert(`Proses embedding berhasil! ${result.processed_images.length} gambar sedang dimuat...`, 'success');
+
+    // Clear success message after images are expected to load
+    setTimeout(() => {
+      clearAlert();
+      // Show final success message without network implications
+      showAlert('Semua proses telah selesai dengan sukses!', 'success');
+      setTimeout(() => clearAlert(), 3000);
+    }, 6000); // Wait longer to ensure images are loaded
+  } else {
+    // No images to process - show completion message
+    showAlert('Proses embedding berhasil diselesaikan!', 'success');
+    setTimeout(() => clearAlert(), 3000);
   }
 }
 
@@ -651,148 +785,235 @@ function displayQualityMetrics(metrics) {
 }
 
 function displayProcessedImages(processedImages, publicDir) {
-  const processedImagesContainer = document.getElementById('processedImages');
+  const gridContainer = document.getElementById('processedImagesGrid');
+  const gridLoading = document.getElementById('gridLoading');
+  const gridEmpty = document.getElementById('gridEmpty');
 
-  if (!processedImagesContainer) {
-    console.warn('Processed images container not found');
+  if (!gridContainer) {
+    console.warn('Grid container not found');
     return;
   }
 
   if (!processedImages || processedImages.length === 0) {
-    processedImagesContainer.innerHTML = `
-      <div class="no-images-message">
-        <i class="fas fa-images"></i>
-        <p>Tidak ada gambar yang diproses</p>
-      </div>
-    `;
+    gridEmpty.style.display = 'block';
+    gridLoading.style.display = 'none';
     return;
   }
 
+  // Hide empty state and show loading
+  gridEmpty.style.display = 'none';
+  gridLoading.style.display = 'flex';
+
   // Debug logging
-  console.log('Processing images:', processedImages);
-  console.log('Public dir:', publicDir);
+  console.log('Processing images for grid:', processedImages);
 
-  let imagesHtml = '<div class="image-comparison-grid">';
+  // Clear existing grid items except loading/empty states
+  const existingItems = gridContainer.querySelectorAll('.result-grid-item');
+  existingItems.forEach(item => item.remove());
 
+  // Generate grid items
   processedImages.forEach((imageInfo, index) => {
-    // Debug log for each image
-    console.log(`Image ${index}:`, imageInfo);
+    console.log(`Creating grid item ${index}:`, imageInfo);
 
-    // Construct proper image URLs based on the structure from main.py
-    // The paths are returned as "public_dir_name/filename"
+    // Construct proper image URLs
     let originalUrl, watermarkedUrl;
 
     if (imageInfo.original) {
-      // Paths from main.py are like "processed_xyz/original_0.png"
       originalUrl = `/static/generated/${imageInfo.original}`;
     }
 
     if (imageInfo.watermarked) {
-      // Paths from main.py are like "processed_xyz/watermarked_0.png"  
       watermarkedUrl = `/static/generated/${imageInfo.watermarked}`;
     }
 
-    console.log(`Image ${index} URLs - Original: ${originalUrl}, Watermarked: ${watermarkedUrl}`);
+    // Create grid item
+    const gridItem = document.createElement('div');
+    gridItem.className = 'result-grid-item';
+    gridItem.innerHTML = `
+      <div class="grid-status-badge success">Success</div>
+      
+      <div class="grid-item-header">
+        <div class="grid-item-icon">
+          <i class="fas fa-image"></i>
+        </div>
+        <div class="grid-item-title">
+          <h4>Gambar ${index + 1}</h4>
+          <p class="grid-item-subtitle">LSB Steganografi</p>
+        </div>
+      </div>
 
-    // Add error handling for missing images
-    imagesHtml += `
-            <div class="image-comparison-item">
-                <div class="image-pair">
-                    <div class="image-container">
-                        ${originalUrl ? `
-                        <img src="${originalUrl}" 
-                             alt="Original Image ${index + 1}"
-                             onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk3YTNiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD4KICA8L3N2Zz4='; this.parentElement.querySelector('.image-label').innerHTML = 'Original (Not Found)';">
-                        ` : '<div class="image-placeholder">Original image not available</div>'}
-                        <div class="image-label original-label">
-                            <i class="fas fa-image"></i> Gambar Asli
-                        </div>
-                    </div>
-                    <div class="image-container watermarked-container">
-                        ${watermarkedUrl ? `
-                        <img src="${watermarkedUrl}" 
-                             alt="Gambar dengan QR Watermark ${index + 1}"
-                             onload="console.log('Watermarked image ${index} loaded successfully'); this.parentElement.classList.add('watermark-success');"
-                             onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+CiAgPHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk3YTNiNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD4KICA8L3N2Zz4='; this.parentElement.querySelector('.image-label').innerHTML = 'Watermarked (Not Found)';">
-                        ` : '<div class="image-placeholder">Watermarked image not available</div>'}
-                        <div class="image-label watermarked-label">
-                            <i class="fas fa-shield-alt"></i> Dengan QR Watermark (LSB Steganografi)
-                        </div>
-                    </div>
-                </div>
-                <div class="image-metrics">
-                    <div class="metric">
-                        <span><i class="fas fa-hashtag"></i> Gambar</span>
-                        <span>${index + 1}</span>
-                    </div>
-                    <div class="metric">
-                        <span><i class="fas fa-check-circle"></i> Status</span>
-                        <span class="success-badge">✓ LSB Embedding Berhasil</span>
-                    </div>
-                    <div class="metric">
-                        <span><i class="fas fa-eye-slash"></i> Metode</span>
-                        <span class="method-badge">LSB Steganografi</span>
-                    </div>
-                </div>
-                <div class="steganography-info">
-                    <div class="info-header">
-                        <i class="fas fa-info-circle"></i>
-                        <span>Informasi Steganografi</span>
-                    </div>
-                    <div class="info-content">
-                        <p><strong>QR Code</strong> telah disematkan secara tersembunyi menggunakan teknik <strong>LSB (Least Significant Bit)</strong>. Gambar hasil terlihat identik dengan mata biasa, namun mengandung data QR yang dapat diekstrak kembali untuk validasi.</p>
-                        <div class="steganography-features">
-                            <div class="feature-item">
-                                <i class="fas fa-check"></i>
-                                <span>Invisible watermarking</span>
-                            </div>
-                            <div class="feature-item">
-                                <i class="fas fa-check"></i>
-                                <span>Data QR tersembunyi</span>
-                            </div>
-                            <div class="feature-item">
-                                <i class="fas fa-check"></i>
-                                <span>Kualitas gambar terjaga</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+      <div class="grid-item-preview">
+        ${watermarkedUrl ? `
+          <img src="${watermarkedUrl}" 
+               alt="Gambar dengan QR Watermark ${index + 1}"
+               onload="this.parentElement.classList.add('loaded')"
+               onerror="this.parentElement.classList.add('error')">
+        ` : `
+          <div class="placeholder-content">
+            <i class="fas fa-image"></i>
+            <p>Gambar tidak tersedia</p>
+          </div>
+        `}
+      </div>
+
+      <div class="grid-item-metrics">
+        <div class="grid-metric">
+          <div class="grid-metric-value">✓</div>
+          <div class="grid-metric-label">Status</div>
+        </div>
+        <div class="grid-metric">
+          <div class="grid-metric-value">LSB</div>
+          <div class="grid-metric-label">Metode</div>
+        </div>
+        <div class="grid-metric">
+          <div class="grid-metric-value">${index + 1}</div>
+          <div class="grid-metric-label">Index</div>
+        </div>
+      </div>
+
+      <div class="grid-item-actions">
+        <a href="${originalUrl || '#'}" target="_blank" class="grid-action-btn secondary" title="Lihat gambar asli">
+          <i class="fas fa-eye"></i>
+          Original
+        </a>
+        <a href="${watermarkedUrl || '#'}" target="_blank" class="grid-action-btn primary" title="Lihat gambar watermark">
+          <i class="fas fa-shield-alt"></i>
+          Watermark
+        </a>
+      </div>
+    `;
+
+    gridContainer.appendChild(gridItem);
   });
 
-  imagesHtml += '</div>';
-  processedImagesContainer.innerHTML = imagesHtml;
-
-  // Add functionality to check if images loaded successfully
+  // Hide loading state
   setTimeout(() => {
+    gridLoading.style.display = 'none';
+    initializeGridNavigation();
     validateImageDisplay(processedImages);
   }, 1000);
+
+  // Update results count
+  const resultsCount = document.querySelector('.results-count');
+  if (resultsCount) {
+    resultsCount.textContent = `${processedImages.length} gambar`;
+  }
+}
+
+// Initialize grid navigation functionality
+function initializeGridNavigation() {
+  const gridContainer = document.getElementById('processedImagesGrid');
+  const leftBtn = document.getElementById('gridNavLeft');
+  const rightBtn = document.getElementById('gridNavRight');
+  const normalViewBtn = document.getElementById('gridViewNormal');
+  const compactViewBtn = document.getElementById('gridViewCompact');
+
+  if (!gridContainer || !leftBtn || !rightBtn) return;
+
+  // Grid navigation
+  function updateNavButtons() {
+    const scrollLeft = gridContainer.scrollLeft;
+    const scrollWidth = gridContainer.scrollWidth;
+    const clientWidth = gridContainer.clientWidth;
+
+    leftBtn.disabled = scrollLeft <= 0;
+    rightBtn.disabled = scrollLeft >= scrollWidth - clientWidth - 10;
+  }
+
+  function scrollGrid(direction) {
+    const scrollAmount = 300; // Scroll by 300px
+    const currentScroll = gridContainer.scrollLeft;
+    const targetScroll = direction === 'left'
+      ? currentScroll - scrollAmount
+      : currentScroll + scrollAmount;
+
+    gridContainer.scrollTo({
+      left: targetScroll,
+      behavior: 'smooth'
+    });
+  }
+
+  // Event listeners for navigation
+  leftBtn.addEventListener('click', () => scrollGrid('left'));
+  rightBtn.addEventListener('click', () => scrollGrid('right'));
+  gridContainer.addEventListener('scroll', updateNavButtons);
+
+  // View toggle functionality
+  if (normalViewBtn && compactViewBtn) {
+    normalViewBtn.addEventListener('click', () => {
+      gridContainer.classList.remove('compact');
+      normalViewBtn.classList.add('active');
+      compactViewBtn.classList.remove('active');
+      setTimeout(updateNavButtons, 100);
+    });
+
+    compactViewBtn.addEventListener('click', () => {
+      gridContainer.classList.add('compact');
+      compactViewBtn.classList.add('active');
+      normalViewBtn.classList.remove('active');
+      setTimeout(updateNavButtons, 100);
+    });
+  }
+
+  // Initial nav button state
+  setTimeout(updateNavButtons, 100);
 }
 
 function validateImageDisplay(processedImages) {
-  console.log('Validating image display...');
+  console.log('Validating grid image display...');
 
-  const imageContainers = document.querySelectorAll('.image-comparison-item');
+  const gridItems = document.querySelectorAll('.result-grid-item');
   let successCount = 0;
-  let totalImages = processedImages.length * 2; // original + watermarked
+  let totalImages = processedImages.length; // Grid shows watermarked images primarily
 
-  imageContainers.forEach((container, index) => {
-    const images = container.querySelectorAll('img');
-    images.forEach((img, imgIndex) => {
+  gridItems.forEach((item, index) => {
+    const img = item.querySelector('.grid-item-preview img');
+    if (img) {
       if (img.complete && img.naturalWidth > 0) {
         successCount++;
-        console.log(`Image ${index}-${imgIndex} loaded successfully`);
+        item.classList.add('image-loaded');
+        console.log(`Grid image ${index} loaded successfully`);
       } else {
-        console.warn(`Image ${index}-${imgIndex} failed to load:`, img.src);
+        item.classList.add('image-error');
+        console.warn(`Grid image ${index} failed to load:`, img.src);
       }
-    });
+    }
   });
 
-  console.log(`Image display validation: ${successCount}/${totalImages} images loaded successfully`);
+  console.log(`Grid validation: ${successCount}/${totalImages} images loaded`);
+
+  // Enhanced final validation after additional delay
+  setTimeout(() => {
+    validateImageDisplayFinal(processedImages);
+  }, 2000);
+}
+
+function validateImageDisplayFinal(processedImages) {
+  console.log('Final validation of grid image display...');
+
+  const gridItems = document.querySelectorAll('.result-grid-item');
+  let successCount = 0;
+  let totalImages = processedImages.length;
+
+  gridItems.forEach((item, index) => {
+    const img = item.querySelector('.grid-item-preview img');
+    if (img && img.complete && img.naturalWidth > 0) {
+      successCount++;
+      item.classList.add('image-loaded');
+    } else {
+      item.classList.add('image-error');
+    }
+  });
+
+  console.log(`Final grid validation: ${successCount}/${totalImages} images loaded`);
 
   if (successCount < totalImages) {
-    showAlert(`Beberapa gambar mungkin tidak dapat ditampilkan. Periksa koneksi jaringan dan coba muat ulang halaman.`, 'warning');
+    const failedCount = totalImages - successCount;
+    if (failedCount > totalImages / 2) {
+      showAlert(`${failedCount} dari ${totalImages} gambar masih dimuat. Proses embedding berhasil. Tunggu sebentar atau refresh halaman.`, 'info');
+    }
+  } else {
+    console.log('All grid images loaded successfully!');
   }
 }
 
@@ -875,4 +1096,220 @@ function showAlert(message, type = 'info') {
 function clearAlert() {
   const alertElement = document.getElementById('embedAlert');
   alertElement.style.display = 'none';
+}
+
+// Network error handling with detailed troubleshooting
+function showDetailedNetworkError() {
+  const alertElement = document.getElementById('embedAlert');
+  alertElement.className = 'alert alert-error';
+
+  const networkTips = [
+    'Periksa koneksi internet Anda',
+    'Coba refresh halaman dan ulangi proses',
+    'Pastikan file dokumen tidak terlalu besar (max 50MB)',
+    'Gunakan browser yang mendukung (Chrome, Firefox, Edge)',
+    'Nonaktifkan ad-blocker atau firewall yang mungkin memblokir',
+    'Coba lagi dalam beberapa menit'
+  ];
+
+  let errorHTML = `
+    <div class="error-header">
+      <i class="fas fa-wifi"></i>
+      <strong>Error Koneksi Jaringan</strong>
+    </div>
+    <div class="error-content">
+      <p>Proses embedding gagal karena masalah koneksi. Silakan coba langkah-langkah berikut:</p>
+      <div class="error-recommendations">
+        <ul>
+  `;
+
+  networkTips.forEach(tip => {
+    errorHTML += `<li><i class="fas fa-arrow-right"></i> ${tip}</li>`;
+  });
+
+  errorHTML += `
+        </ul>
+      </div>
+    </div>
+  `;
+
+  alertElement.innerHTML = errorHTML;
+  alertElement.style.display = 'block';
+
+  // Auto-hide after 10 seconds
+  setTimeout(() => {
+    alertElement.style.display = 'none';
+  }, 10000);
+}
+
+// Check network connectivity
+function checkNetworkConnection() {
+  return navigator.onLine;
+}
+
+// Monitor network status
+function initNetworkMonitoring() {
+  window.addEventListener('online', function () {
+    console.log('Network connection restored');
+    showAlert('Koneksi internet pulih. Anda dapat melanjutkan proses.', 'success');
+  });
+
+  window.addEventListener('offline', function () {
+    console.log('Network connection lost');
+    showAlert('Koneksi internet terputus. Periksa koneksi Anda.', 'warning');
+  });
+}
+
+// Initialize Results Tabs
+function initializeResultsTabs() {
+  const tabButtons = document.querySelectorAll('.results-tab-btn');
+  const tabPanes = document.querySelectorAll('.results-tab-pane');
+
+  if (!tabButtons.length || !tabPanes.length) return;
+
+  tabButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      const targetTab = button.getAttribute('data-tab');
+
+      // Remove active class from all buttons and panes
+      tabButtons.forEach(btn => btn.classList.remove('active'));
+      tabPanes.forEach(pane => pane.classList.remove('active'));
+
+      // Add active class to clicked button and corresponding pane
+      button.classList.add('active');
+      const targetPane = document.getElementById(`tab-${targetTab}`);
+      if (targetPane) {
+        targetPane.classList.add('active');
+      }
+
+      // Update grid navigation if images tab is activated
+      if (targetTab === 'images') {
+        setTimeout(() => {
+          updateGridNavigation();
+        }, 100);
+      }
+    });
+  });
+}
+
+// Initialize Accordion
+function initializeAccordion() {
+  const accordionHeaders = document.querySelectorAll('.accordion-header');
+
+  accordionHeaders.forEach(header => {
+    header.addEventListener('click', () => {
+      const targetId = header.getAttribute('data-target');
+      const content = document.getElementById(targetId);
+      const isActive = header.classList.contains('active');
+
+      // Close all accordion items
+      accordionHeaders.forEach(h => {
+        h.classList.remove('active');
+        const c = document.getElementById(h.getAttribute('data-target'));
+        if (c) c.classList.remove('active');
+      });
+
+      // If item wasn't active, open it
+      if (!isActive) {
+        header.classList.add('active');
+        if (content) content.classList.add('active');
+      }
+    });
+  });
+}
+
+// Update Grid Navigation (helper function)
+function updateGridNavigation() {
+  const gridContainer = document.getElementById('processedImagesGrid');
+  const leftBtn = document.getElementById('gridNavLeft');
+  const rightBtn = document.getElementById('gridNavRight');
+
+  if (!gridContainer || !leftBtn || !rightBtn) return;
+
+  const scrollLeft = gridContainer.scrollLeft;
+  const scrollWidth = gridContainer.scrollWidth;
+  const clientWidth = gridContainer.clientWidth;
+
+  leftBtn.disabled = scrollLeft <= 0;
+  rightBtn.disabled = scrollLeft >= scrollWidth - clientWidth - 10;
+}
+
+// Update results display functions
+function updateResultsDisplay(result) {
+  const resultsPanel = document.getElementById('resultsPanel');
+  if (resultsPanel) {
+    resultsPanel.style.display = 'block';
+  }
+
+  // Update overview tab with download links
+  updateOverviewTab(result);
+
+  // Update image stats
+  updateImageStats(result);
+
+  // Show default overview tab
+  const overviewTab = document.querySelector('[data-tab="overview"]');
+  if (overviewTab) {
+    overviewTab.click();
+  }
+}
+
+function updateOverviewTab(result) {
+  // Update download links
+  const downloadContainer = document.getElementById('embedDownload');
+  if (downloadContainer && result.download_url) {
+    downloadContainer.innerHTML = `
+      <div class="download-item">
+        <a href="${result.download_url}" target="_blank" class="download-link">
+          <i class="fas fa-download"></i>
+          <span>Unduh Dokumen Watermark</span>
+          <small>PDF dengan watermark QR tersembunyi</small>
+        </a>
+      </div>
+    `;
+  }
+
+  // Update QR info
+  const qrInfoContainer = document.getElementById('qrResultInfo');
+  if (qrInfoContainer && result.qr_info) {
+    qrInfoContainer.innerHTML = `
+      <div class="qr-info-grid">
+        <div class="qr-info-item">
+          <span class="qr-info-label">Data:</span>
+          <span class="qr-info-value">${result.qr_info.data || 'N/A'}</span>
+        </div>
+        <div class="qr-info-item">
+          <span class="qr-info-label">Level Koreksi:</span>
+          <span class="qr-info-value">${result.qr_info.error_correction || 'M'}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  // Update security info if available
+  const securityCard = document.getElementById('securityCard');
+  const securityInfoContainer = document.getElementById('securityResultInfo');
+  if (result.security_enabled && securityCard && securityInfoContainer) {
+    securityCard.style.display = 'flex';
+    securityInfoContainer.innerHTML = `
+      <div class="security-summary">
+        <div class="security-level-badge">
+          <i class="fas fa-shield-check"></i>
+          <span>Level ${result.security_level || 'Standard'}</span>
+        </div>
+      </div>
+    `;
+  }
+}
+
+function updateImageStats(result) {
+  const totalCount = document.getElementById('totalImagesCount');
+  const processedCount = document.getElementById('processedImagesCount');
+
+  if (result.processed_images) {
+    const total = result.processed_images.length;
+
+    if (totalCount) totalCount.textContent = total;
+    if (processedCount) processedCount.textContent = total;
+  }
 }

@@ -293,29 +293,196 @@
             <div class="alert" id="embedAlert"></div>
         </div>
         
-        <!-- Results Panel -->
-        <div class="results-panel" id="embedResult" style="display: none;">
+        <!-- Results Tabs Panel -->
+        <div class="results-tabs-panel" id="resultsPanel" style="display: none;">
             <div class="panel-header">
-                <i class="fas fa-check-circle"></i>
+                <i class="fas fa-clipboard-check"></i>
                 <h3>Hasil Pemrosesan</h3>
+                <div class="panel-status">
+                    <span class="status-badge status-success">Selesai</span>
+                </div>
             </div>
             
-            <!-- Document Download -->
-            <div class="result-section">
-                <h4><i class="fas fa-download"></i> Unduh Dokumen</h4>
-                <div class="download-links" id="embedDownload"></div>
+            <!-- Tab Navigation -->
+            <div class="results-tab-nav">
+                <button class="results-tab-btn active" data-tab="overview">
+                    <i class="fas fa-eye"></i>
+                    <span>Overview</span>
+                </button>
+                <button class="results-tab-btn" data-tab="images">
+                    <i class="fas fa-images"></i>
+                    <span>Gambar</span>
+                </button>
+                <button class="results-tab-btn" data-tab="metrics">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Metrik</span>
+                </button>
+                <button class="results-tab-btn" data-tab="details">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Detail</span>
+                </button>
             </div>
-
-            <!-- QR Information -->
-            <div class="result-section" id="qrResultSection">
-                <h4><i class="fas fa-qrcode"></i> Informasi QR Code</h4>
-                <div class="qr-result-info" id="qrResultInfo"></div>
-            </div>
-
-            <!-- Security Information -->
-            <div class="result-section" id="securityResultSection" style="display: none;">
-                <h4><i class="fas fa-shield-alt"></i> Informasi Keamanan</h4>
-                <div class="security-result-info" id="securityResultInfo"></div>
+            
+            <!-- Tab Contents -->
+            <div class="results-tab-content">
+                
+                <!-- Overview Tab -->
+                <div class="results-tab-pane active" id="tab-overview">
+                    <div class="overview-cards">
+                        <!-- Download Card -->
+                        <div class="overview-card download-card">
+                            <div class="card-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="card-content">
+                                <h4>Unduh Dokumen</h4>
+                                <p>Dokumen dengan watermark sudah siap</p>
+                                <div class="download-links" id="embedDownload"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- QR Info Card -->
+                        <div class="overview-card qr-card">
+                            <div class="card-icon">
+                                <i class="fas fa-qrcode"></i>
+                            </div>
+                            <div class="card-content">
+                                <h4>Informasi QR Code</h4>
+                                <div class="qr-result-info" id="qrResultInfo"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Security Card -->
+                        <div class="overview-card security-card" id="securityCard" style="display: none;">
+                            <div class="card-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="card-content">
+                                <h4>Keamanan</h4>
+                                <div class="security-result-info" id="securityResultInfo"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Images Tab -->
+                <div class="results-tab-pane" id="tab-images">
+                    <div class="images-tab-header">
+                        <div class="images-stats">
+                            <div class="stat-item">
+                                <span class="stat-number" id="totalImagesCount">0</span>
+                                <span class="stat-label">Total Gambar</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number" id="processedImagesCount">0</span>
+                                <span class="stat-label">Berhasil Diproses</span>
+                            </div>
+                        </div>
+                        
+                        <div class="images-controls">
+                            <button type="button" class="view-toggle-btn active" id="gridViewNormal">
+                                <i class="fas fa-th"></i>
+                                Normal
+                            </button>
+                            <button type="button" class="view-toggle-btn" id="gridViewCompact">
+                                <i class="fas fa-th-large"></i>
+                                Compact
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="results-grid-wrapper">
+                        <div class="grid-nav-buttons grid-nav-left">
+                            <button type="button" class="grid-nav-btn" id="gridNavLeft" disabled title="Geser ke kiri">
+                                <i class="fas fa-chevron-left"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="results-grid" id="processedImagesGrid">
+                            <div class="results-grid-loading" id="gridLoading" style="display: none;">
+                                <div class="grid-loading-spinner"></div>
+                                <span>Memproses gambar...</span>
+                            </div>
+                            
+                            <div class="results-grid-empty" id="gridEmpty">
+                                <i class="fas fa-image"></i>
+                                <h4>Belum ada gambar yang diproses</h4>
+                                <p>Gambar akan muncul setelah proses embedding selesai</p>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-nav-buttons grid-nav-right">
+                            <button type="button" class="grid-nav-btn" id="gridNavRight" disabled title="Geser ke kanan">
+                                <i class="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Metrics Tab -->
+                <div class="results-tab-pane" id="tab-metrics">
+                    <div class="metrics-container">
+                        <div class="metrics-header">
+                            <h4><i class="fas fa-tachometer-alt"></i> Metrik Kualitas</h4>
+                        </div>
+                        <div class="metrics" id="embedMetrics"></div>
+                    </div>
+                </div>
+                
+                <!-- Details Tab -->
+                <div class="results-tab-pane" id="tab-details">
+                    <div class="details-container">
+                        <div class="details-accordion">
+                            
+                            <!-- Process Log Section -->
+                            <div class="accordion-item">
+                                <button class="accordion-header" type="button" data-target="processLog">
+                                    <span>
+                                        <i class="fas fa-list-alt"></i>
+                                        Log Proses
+                                    </span>
+                                    <i class="fas fa-chevron-down accordion-icon"></i>
+                                </button>
+                                <div class="accordion-content" id="processLog">
+                                    <div class="process-log" id="embedLog"></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Detailed Analysis Section -->
+                            <div class="accordion-item">
+                                <button class="accordion-header" type="button" data-target="detailedAnalysis">
+                                    <span>
+                                        <i class="fas fa-microscope"></i>
+                                        Analisis Detail
+                                    </span>
+                                    <i class="fas fa-chevron-down accordion-icon"></i>
+                                </button>
+                                <div class="accordion-content" id="detailedAnalysis">
+                                    <div class="detailed-process" id="detailedProcess">
+                                        <h5><i class="fas fa-microscope"></i> Analisis Detail - Gambar Pertama</h5>
+                                        <div id="detailedSteps"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Calculation Details Section -->
+                            <div class="accordion-item">
+                                <button class="accordion-header" type="button" data-target="calculationDetailsContent">
+                                    <span>
+                                        <i class="fas fa-calculator"></i>
+                                        Detail Kalkulasi
+                                    </span>
+                                    <i class="fas fa-chevron-down accordion-icon"></i>
+                                </button>
+                                <div class="accordion-content" id="calculationDetailsContent">
+                                    <div class="calculation-details" id="calculationDetails"></div>
+                                </div>
+                            </div>
+                            
+                        </div>
+                    </div>
+                </div>
+                
             </div>
         </div>
 
@@ -332,25 +499,25 @@
                 <div class="metrics" id="embedMetrics"></div>
             </div>
 
-            <!-- Processed Images -->
+            <!-- Processed Images Grid -->
             <div class="images-section">
-                <h4><i class="fas fa-images"></i> Gambar yang Diproses</h4>
-                <div class="processed-images" id="processedImages"></div>
+                <div class="results-grid-header">
+                    <div class="results-grid-title">
+                        <i class="fas fa-images"></i>
+                        <h4>Gambar yang Diproses</h4>
+                    </div>
+                    <div class="grid-view-controls">
+                        <button type="button" class="view-toggle-btn active" id="gridViewNormal">
+                            <i class="fas fa-th"></i>
+                            Normal
+                        </button>
+                        <button type="button" class="view-toggle-btn" id="gridViewCompact">
+                            <i class="fas fa-th-large"></i>
+                            Compact
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
-
-        <!-- Process Details Panel -->
-        <div class="details-panel" id="embedProcess" style="display: none;">
-            <div class="panel-header">
-                <i class="fas fa-microscope"></i>
-                <h3>Detail Proses</h3>
-            </div>
-            <div class="process-log" id="embedLog"></div>
-            <div class="detailed-process" id="detailedProcess" style="display: none;">
-                <h4><i class="fas fa-microscope"></i> Analisis Detail - Gambar Pertama</h4>
-                <div id="detailedSteps"></div>
-            </div>
-            <div class="calculation-details" id="calculationDetails"></div>
         </div>
     </div>
 </div>

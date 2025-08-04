@@ -40,7 +40,7 @@ function initializeQREnhancements() {
   }
 
   // Listen to all option changes
-  [errorCorrection, qrSize, fillColor, backColor].forEach(element => {
+  [qrSize].forEach(element => {
     if (element) {
       element.addEventListener('change', function () {
         if (qrDataInput && qrDataInput.value.trim()) {
@@ -203,11 +203,11 @@ function initializeQREnhancements() {
     try {
       const formData = new FormData();
       formData.append('qrData', data);
-      formData.append('errorCorrection', errorCorrection.value);
-      formData.append('qrSize', qrSize.value);
-      formData.append('borderSize', borderSize.value);
-      formData.append('fillColor', fillColor.value);
-      formData.append('backColor', backColor.value);
+      formData.append('errorCorrection', 'M'); // Default to M level
+      formData.append('qrSize', qrSize ? qrSize.value : '10');
+      formData.append('borderSize', borderSize ? borderSize.value : '4');
+      formData.append('fillColor', '#000000'); // Default black
+      formData.append('backColor', '#ffffff'); // Default white
       formData.append('preview', 'true');
 
       const response = await fetch('/generate_qr_realtime', {
@@ -262,7 +262,7 @@ function initializeQREnhancements() {
   function updateCapacityAnalysis(capacity) {
     const currentLength = qrDataInput ? qrDataInput.value.length : 0;
 
-    // Update capacity levels
+    // Update capacity levels (only if elements exist)
     ['L', 'M', 'Q', 'H'].forEach(level => {
       const maxCapacity = capacity[level.toLowerCase()] || 0;
       const capacityElement = document.getElementById(`capacity${level}`);
@@ -270,10 +270,11 @@ function initializeQREnhancements() {
         capacityElement.textContent = `${maxCapacity} chars`;
       }
 
-      // Highlight active level
+      // Highlight active level (only if elements exist)
       const levelItem = document.querySelector(`[data-level="${level}"]`);
-      if (levelItem && errorCorrection) {
-        if (level === errorCorrection.value) {
+      if (levelItem) {
+        // Default to 'M' level since we removed errorCorrection selector
+        if (level === 'M') {
           levelItem.classList.add('active');
         } else {
           levelItem.classList.remove('active');
@@ -281,8 +282,8 @@ function initializeQREnhancements() {
       }
     });
 
-    // Update usage meter
-    const currentCapacity = errorCorrection ? capacity[errorCorrection.value.toLowerCase()] || 1 : 1;
+    // Update usage meter (only if elements exist)
+    const currentCapacity = capacity['m'] || 1; // Use M level as default
     const usagePercentage = Math.min((currentLength / currentCapacity) * 100, 100);
 
     const usagePercentageElement = document.getElementById('usagePercentage');
@@ -374,29 +375,25 @@ document.addEventListener('DOMContentLoaded', function () {
     clearLog('generateLog');
 
     const qrData = document.getElementById('qrData').value;
-    const errorCorrection = document.getElementById('errorCorrection').value;
     const qrSize = document.getElementById('qrSize').value;
     const borderSize = document.getElementById('borderSize').value;
-    const fillColor = document.getElementById('fillColor').value;
-    const backColor = document.getElementById('backColor').value;
 
     // Create form data with enhanced parameters
     const formData = new FormData();
     formData.append('qrData', qrData);
-    formData.append('errorCorrection', errorCorrection);
+    formData.append('errorCorrection', 'M'); // Default to M level
     formData.append('qrSize', qrSize);
     formData.append('borderSize', borderSize);
-    formData.append('fillColor', fillColor);
-    formData.append('backColor', backColor);
+    formData.append('fillColor', '#000000'); // Default black
+    formData.append('backColor', '#ffffff'); // Default white
     formData.append('preview', 'false'); // Final generation, not preview
 
     // Add process steps
     addLogEntry('generateLog', '🚀 Memulai proses pembuatan QR Code...', 'info');
     addLogEntry('generateLog', `📝 Data input: "${qrData}"`, 'info');
     addLogEntry('generateLog', `📏 Panjang data: ${qrData.length} karakter`, 'info');
-    addLogEntry('generateLog', `⚙️ Error Correction: ${errorCorrection}`, 'info');
+    addLogEntry('generateLog', `⚙️ Error Correction: M`, 'info');
     addLogEntry('generateLog', `📐 Ukuran: ${qrSize}x`, 'info');
-    addLogEntry('generateLog', `🎨 Warna: ${fillColor} pada ${backColor}`, 'info');
 
     try {
       const response = await fetch('/generate_qr_realtime', {
@@ -434,7 +431,7 @@ document.addEventListener('DOMContentLoaded', function () {
                           </div>
                           <div class="detail-item">
                               <span class="detail-label">Error Correction:</span>
-                              <span class="detail-value">${errorCorrection}</span>
+                              <span class="detail-value">M</span>
                           </div>
                           <div class="detail-item">
                               <span class="detail-label">Penggunaan:</span>
