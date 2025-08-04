@@ -1,0 +1,1083 @@
+{% extends "base.html" %}
+
+{% block title %}Keamanan Dokumen - Watermarking Bahan Ajar Digital{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Enhanced Container and Layout */
+    .security-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        min-height: 100vh;
+    }
+    
+    /* Override body background for security page */
+    body.security-page {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+    }
+    
+    /* Ensure security container has proper contrast */
+    body.security-page .security-container {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        margin: 2rem auto;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Enhanced Header */
+    header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        color: white;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+    }
+    
+    header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    header p {
+        font-size: 1.1rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    /* Enhanced Navigation */
+    .main-nav {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        margin-bottom: 3rem;
+        flex-wrap: wrap;
+    }
+    
+    .main-nav a {
+        padding: 1rem 2rem;
+        text-decoration: none;
+        color: #374151;
+        background: white;
+        border-radius: 12px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 2px solid transparent;
+    }
+    
+    .main-nav a:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        border-color: #667eea;
+    }
+    
+    .main-nav a.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    /* Enhanced Security Features Grid */
+    .security-features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2.5rem;
+        margin: 2rem 0;
+    }
+    
+    /* Enhanced Security Cards */
+    .security-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .security-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .security-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Enhanced Security Icons */
+    .security-icon {
+        width: 60px;
+        height: 60px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+        color: white;
+        font-size: 1.8rem;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .security-card h3 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        color: #1f2937;
+    }
+    
+    /* Enhanced Status Badges */
+    .security-status {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        border-radius: 25px;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .status-secure {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+    
+    .status-legacy {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+    
+    .status-error {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    }
+    
+    /* Enhanced Form Styling */
+    .feature-form {
+        display: none;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #f3f4f6;
+    }
+    
+    .feature-form.active {
+        display: block;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        display: block;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: #374151;
+        font-size: 0.95rem;
+    }
+    
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        font-size: 0.95rem;
+        transition: all 0.3s ease;
+        background: #f9fafb;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-group input[type="file"] {
+        padding: 0.75rem;
+        background: white;
+        border: 2px dashed #d1d5db;
+        cursor: pointer;
+    }
+    
+    .form-group input[type="file"]:hover {
+        border-color: #667eea;
+        background: #f8fafc;
+    }
+    
+    /* Enhanced Buttons */
+    .btn-security {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .btn-security:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-secondary {
+        background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-secondary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3);
+    }
+    
+    /* Enhanced Result Panels */
+    .result-panel {
+        background: #f9fafb;
+        border: 2px solid #e5e7eb;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        display: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    .result-panel.show {
+        display: block;
+        animation: slideIn 0.3s ease;
+    }
+    
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .result-success {
+        border-left: 6px solid #10b981;
+        background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    }
+    
+    .result-error {
+        border-left: 6px solid #ef4444;
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    }
+    
+    .result-warning {
+        border-left: 6px solid #f59e0b;
+        background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    }
+    
+    /* Enhanced Loading Animation */
+    .loading {
+        display: none;
+        align-items: center;
+        gap: 0.75rem;
+        color: #6b7280;
+        font-size: 0.95rem;
+        font-weight: 500;
+        padding: 1rem;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 2px solid #e5e7eb;
+    }
+    
+    .loading.show {
+        display: flex;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid #e5e7eb;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    /* Enhanced Info Text */
+    .info-text {
+        font-size: 0.95rem;
+        color: #6b7280;
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+        background: #f8fafc;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+    }
+    
+    /* Enhanced Security Details */
+    .security-details {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 1.5rem;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    
+    .security-details p {
+        margin-bottom: 0.75rem;
+    }
+    
+    .security-details strong {
+        color: #374151;
+        font-weight: 600;
+    }
+    
+    .security-details ul {
+        margin: 0.5rem 0;
+        padding-left: 1.5rem;
+    }
+    
+    .security-details li {
+        margin-bottom: 0.25rem;
+    }
+    
+    /* Enhanced Navigation Tabs */
+    .navigation-tabs {
+        display: flex;
+        background: white;
+        border-radius: 16px;
+        padding: 0.5rem;
+        margin-bottom: 3rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        border: 2px solid #e5e7eb;
+        overflow: hidden;
+    }
+    
+    .nav-tab {
+        flex: 1;
+        padding: 1rem 1.5rem;
+        text-align: center;
+        background: transparent;
+        border: none;
+        border-radius: 12px;
+        cursor: pointer;
+        font-weight: 600;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        font-size: 0.95rem;
+        position: relative;
+    }
+    
+    .nav-tab:hover {
+        color: #374151;
+        background: #f8fafc;
+    }
+    
+    .nav-tab.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Enhanced Details/Summary */
+    details {
+        margin: 1.5rem 0;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 2px solid #e5e7eb;
+        overflow: hidden;
+    }
+    
+    details summary {
+        cursor: pointer;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        background: white;
+        border-bottom: 2px solid #e5e7eb;
+        transition: all 0.3s ease;
+    }
+    
+    details summary:hover {
+        background: #f8fafc;
+    }
+    
+    details[open] summary {
+        border-bottom-color: #667eea;
+    }
+    
+    details > div {
+        padding: 1.5rem;
+    }
+    
+    /* Enhanced Range Input */
+    input[type="range"] {
+        width: 100%;
+        height: 8px;
+        border-radius: 4px;
+        background: #e5e7eb;
+        outline: none;
+        -webkit-appearance: none;
+    }
+    
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .security-container {
+            padding: 1rem;
+        }
+        
+        header {
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        header h1 {
+            font-size: 2rem;
+        }
+        
+        .security-features {
+            grid-template-columns: 1fr;
+            gap: 2rem;
+        }
+        
+        .security-card {
+            padding: 2rem;
+        }
+        
+        .navigation-tabs {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .nav-tab {
+            border-radius: 8px;
+        }
+        
+        .main-nav {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .main-nav a {
+            width: 100%;
+            max-width: 300px;
+            text-align: center;
+        }
+    }
+    
+    /* Enhanced Status Panel */
+    .status-panel {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        border: 2px solid #e5e7eb;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-top: 3rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-panel h3 {
+        color: #1f2937;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="security-desktop-layout">
+    <!-- Left Sidebar: Navigation and Info -->
+    <div class="security-left-sidebar">
+        <div class="security-nav-panel">
+            <div class="panel-header">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Fitur Keamanan</h3>
+            </div>
+            <div class="security-nav-buttons">
+                <button class="security-nav-btn active" onclick="showTab('preregister')">
+                    <i class="fas fa-clipboard-list"></i>
+                    <div class="nav-btn-content">
+                        <span class="nav-btn-title">Pra-Daftar Dokumen</span>
+                        <span class="nav-btn-desc">Daftarkan dokumen untuk binding</span>
+                    </div>
+                </button>
+                <button class="security-nav-btn" onclick="showTab('secure-qr')">
+                    <i class="fas fa-link"></i>
+                    <div class="nav-btn-content">
+                        <span class="nav-btn-title">QR Code Aman</span>
+                        <span class="nav-btn-desc">Buat QR dengan binding</span>
+                    </div>
+                </button>
+                <button class="security-nav-btn" onclick="showTab('validate')">
+                    <i class="fas fa-check-circle"></i>
+                    <div class="nav-btn-content">
+                        <span class="nav-btn-title">Validasi Binding</span>
+                        <span class="nav-btn-desc">Verifikasi QR-dokumen</span>
+                    </div>
+                </button>
+                <button class="security-nav-btn" onclick="showTab('info')">
+                    <i class="fas fa-info-circle"></i>
+                    <div class="nav-btn-content">
+                        <span class="nav-btn-title">Info Keamanan</span>
+                        <span class="nav-btn-desc">Ekstrak info QR</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- Status Panel -->
+        <div class="security-status-panel">
+            <div class="panel-header">
+                <i class="fas fa-shield-check"></i>
+                <h3>Status Keamanan</h3>
+            </div>
+            <div id="securityStatusContent">
+                <div class="status-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Sistem keamanan aktif</span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-lock"></i>
+                    <span>Enkripsi kriptografi tersedia</span>
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Binding dokumen tersedia</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="security-main-content">
+
+    <!-- Pra-Daftar Dokumen Tab -->
+    <div id="tab-preregister" class="security-features">
+        <div class="security-card">
+            <div class="security-icon">📋</div>
+            <h3>Pra-Daftar Dokumen</h3>
+            <p class="info-text">Daftarkan dokumen Anda terlebih dahulu untuk menghasilkan token binding, kemudian buat QR code yang terhubung secara kriptografis dengannya.</p>
+            
+            <div class="feature-form active">
+                <form id="preregisterForm">
+                    <div class="form-group">
+                        <label for="preregDocument">📄 File Dokumen (.docx atau .pdf)</label>
+                        <input type="file" id="preregDocument" name="documentFile" accept=".docx,.pdf" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="preregQrData">📝 Data QR Code</label>
+                        <textarea id="preregQrData" name="qrData" rows="4" placeholder="Masukkan data yang akan dikodekan dalam QR code..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="preregExpiry">⏰ Masa Berlaku Binding (jam)</label>
+                        <select id="preregExpiry" name="expiryHours">
+                            <option value="1">1 Jam</option>
+                            <option value="6">6 Jam</option>
+                            <option value="24" selected>24 Jam</option>
+                            <option value="72">3 Hari</option>
+                            <option value="168">1 Minggu</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn-security">
+                        🔐 Pra-Daftar Dokumen
+                    </button>
+                </form>
+                
+                <div class="loading" id="preregisterLoading">
+                    <div class="spinner"></div>
+                    <span>Memproses pendaftaran dokumen...</span>
+                </div>
+                
+                <div class="result-panel" id="preregisterResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pembuatan QR Aman Tab -->
+    <div id="tab-secure-qr" class="security-features" style="display: none;">
+        <div class="security-card">
+            <div class="security-icon">🔗</div>
+            <h3>Pembuatan QR Code Aman</h3>
+            <p class="info-text">Buat QR code dengan binding dokumen menggunakan berbagai metode untuk keamanan yang ditingkatkan.</p>
+            
+            <div class="feature-form active">
+                <form id="secureQrForm">
+                    <div class="form-group">
+                        <label for="sqrData">📝 Data QR Code</label>
+                        <textarea id="sqrData" name="qrData" rows="4" placeholder="Masukkan data untuk dikodekan..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="bindingMode">🔒 Mode Binding</label>
+                        <select id="bindingMode" name="bindingMode" onchange="toggleBindingOptions()">
+                            <option value="none">Tanpa Binding (Legacy)</option>
+                            <option value="upload">Upload Dokumen</option>
+                            <option value="token">Gunakan Token Pra-Generated</option>
+                        </select>
+                    </div>
+                    
+                    <div id="uploadBinding" class="form-group" style="display: none;">
+                        <label for="sqrDocument">📄 File Dokumen (.docx atau .pdf)</label>
+                        <input type="file" id="sqrDocument" name="documentFile" accept=".docx,.pdf">
+                    </div>
+                    
+                    <div id="tokenBinding" class="form-group" style="display: none;">
+                        <label for="bindingToken">🔑 Token Binding</label>
+                        <textarea id="bindingToken" name="bindingToken" rows="3" placeholder="Tempel token binding dari pra-daftar dokumen..."></textarea>
+                    </div>
+                    
+                    <!-- QR Generation Options -->
+                    <details style="margin: 1.5rem 0;">
+                        <summary style="cursor: pointer; font-weight: 600;">⚙️ Opsi QR Lanjutan</summary>
+                        <div style="margin-top: 1.5rem;">
+                            <div class="form-group">
+                                <label for="sqrErrorCorrection">🛡️ Koreksi Error</label>
+                                <select id="sqrErrorCorrection" name="errorCorrection">
+                                    <option value="L">Rendah (7%)</option>
+                                    <option value="M" selected>Sedang (15%)</option>
+                                    <option value="Q">Tinggi (25%)</option>
+                                    <option value="H">Sangat Tinggi (30%)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="sqrSize">📏 Ukuran QR</label>
+                                <input type="range" id="sqrSize" name="qrSize" min="5" max="20" value="10" oninput="updateSizeDisplay(this.value)">
+                                <span id="sizeDisplay" style="display: block; margin-top: 0.5rem; font-weight: 600; color: #667eea;">10px per modul</span>
+                            </div>
+                        </div>
+                    </details>
+                    
+                    <button type="submit" class="btn-security">
+                        🔗 Buat QR Code Aman
+                    </button>
+                </form>
+                
+                <div class="loading" id="secureQrLoading">
+                    <div class="spinner"></div>
+                    <span>Membuat QR code aman...</span>
+                </div>
+                
+                <div class="result-panel" id="secureQrResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Validasi Binding Tab -->
+    <div id="tab-validate" class="security-features" style="display: none;">
+        <div class="security-card">
+            <div class="security-icon">✅</div>
+            <h3>Validasi Binding QR-Dokumen</h3>
+            <p class="info-text">Verifikasi bahwa QR code terikat dengan benar ke dokumen tertentu untuk jaminan keamanan.</p>
+            
+            <div class="feature-form active">
+                <form id="validateBindingForm">
+                    <div class="form-group">
+                        <label for="validateQr">📱 Gambar QR Code (.png)</label>
+                        <input type="file" id="validateQr" name="qrFile" accept=".png" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="validateDocument">📄 File Dokumen (.docx atau .pdf)</label>
+                        <input type="file" id="validateDocument" name="documentFile" accept=".docx,.pdf" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-security">
+                        ✅ Validasi Binding
+                    </button>
+                </form>
+                
+                <div class="loading" id="validateLoading">
+                    <div class="spinner"></div>
+                    <span>Memvalidasi binding QR-dokumen...</span>
+                </div>
+                
+                <div class="result-panel" id="validateResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Info Keamanan QR Tab -->
+    <div id="tab-info" class="security-features" style="display: none;">
+        <div class="security-card">
+            <div class="security-icon">ℹ️</div>
+            <h3>Informasi Keamanan QR</h3>
+            <p class="info-text">Ekstrak informasi keamanan dari QR code manapun untuk melihat apakah memiliki fitur binding dokumen.</p>
+            
+            <div class="feature-form active">
+                <form id="securityInfoForm">
+                    <div class="form-group">
+                        <label for="infoQr">📱 Gambar QR Code (.png)</label>
+                        <input type="file" id="infoQr" name="qrFile" accept=".png" required>
+                    </div>
+                    
+                    <button type="submit" class="btn-security">
+                        ℹ️ Ekstrak Info Keamanan
+                    </button>
+                </form>
+                
+                <div class="loading" id="infoLoading">
+                    <div class="spinner"></div>
+                    <span>Mengekstrak informasi keamanan...</span>
+                </div>
+                
+                <div class="result-panel" id="infoResult"></div>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    function showTab(tabName) {
+        // Hide all tabs
+        document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+            tab.style.display = 'none';
+        });
+        
+        // Remove active class from all nav buttons
+        document.querySelectorAll('.security-nav-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        
+        // Show selected tab
+        document.getElementById(`tab-${tabName}`).style.display = 'block';
+        
+        // Add active class to clicked nav button
+        event.target.closest('.security-nav-btn').classList.add('active');
+    }
+    
+    // Binding mode toggle
+    function toggleBindingOptions() {
+        const mode = document.getElementById('bindingMode').value;
+        const uploadDiv = document.getElementById('uploadBinding');
+        const tokenDiv = document.getElementById('tokenBinding');
+        
+        uploadDiv.style.display = mode === 'upload' ? 'block' : 'none';
+        tokenDiv.style.display = mode === 'token' ? 'block' : 'none';
+    }
+    
+    // Update size display
+    function updateSizeDisplay(value) {
+        document.getElementById('sizeDisplay').textContent = `${value}px per modul`;
+    }
+    
+    // Utility functions
+    function showLoading(elementId) {
+        document.getElementById(elementId).classList.add('show');
+    }
+    
+    function hideLoading(elementId) {
+        document.getElementById(elementId).classList.remove('show');
+    }
+    
+    function showResult(elementId, content, type = 'success') {
+        const element = document.getElementById(elementId);
+        element.innerHTML = content;
+        element.className = `result-panel show result-${type}`;
+    }
+    
+    function formatTimestamp(timestamp) {
+        return new Date(timestamp * 1000).toLocaleString('id-ID');
+    }
+    
+    // Form handlers
+    document.getElementById('preregisterForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        showLoading('preregisterLoading');
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('/pre_register_document', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const content = `
+                    <h4>✅ Dokumen Berhasil Pra-Didaftarkan</h4>
+                    <div class="security-details">
+                        <p><strong>ID Registrasi:</strong> ${result.registration_id}</p>
+                        <p><strong>Dokumen:</strong> ${result.document_info.filename}</p>
+                        <p><strong>Ukuran:</strong> ${(result.document_info.size / 1024).toFixed(1)} KB</p>
+                        <p><strong>Tipe:</strong> ${result.document_info.document_type}</p>
+                        <p><strong>Berlaku Sampai:</strong> ${formatTimestamp(result.expires_at)}</p>
+                        <br>
+                        <p><strong>Token Binding:</strong></p>
+                        <textarea readonly style="width: 100%; height: 80px; font-size: 0.75rem; border-radius: 8px; padding: 0.5rem; background: #f8fafc;">${result.binding_token}</textarea>
+                        <br><br>
+                        <p style="color: #059669;"><strong>Langkah Selanjutnya:</strong></p>
+                        <ul style="margin: 0.5rem 0;">
+                            <li>Salin token binding di atas</li>
+                            <li>Pergi ke tab "Pembuatan QR Aman"</li>
+                            <li>Pilih mode "Gunakan Token Pra-Generated"</li>
+                            <li>Tempel token dan buat QR code Anda</li>
+                        </ul>
+                    </div>
+                `;
+                showResult('preregisterResult', content, 'success');
+            } else {
+                showResult('preregisterResult', `<h4>❌ Pra-Daftar Gagal</h4><p>${result.message}</p>`, 'error');
+            }
+        } catch (error) {
+            showResult('preregisterResult', `<h4>❌ Error</h4><p>Error jaringan: ${error.message}</p>`, 'error');
+        } finally {
+            hideLoading('preregisterLoading');
+        }
+    });
+    
+    document.getElementById('secureQrForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        showLoading('secureQrLoading');
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('/generate_secure_qr', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                let content = `
+                    <h4>✅ QR Code Aman Berhasil Dibuat</h4>
+                    <div class="security-details">
+                        <img src="${result.qr_url}" alt="QR Code yang Dibuat" style="max-width: 200px; margin: 1rem 0; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                        <br>
+                        <a href="${result.qr_url}" download class="btn-secondary">📥 Unduh QR Code</a>
+                        <br><br>
+                        <p><strong>Mode Binding:</strong> ${result.binding_mode}</p>
+                        <p><strong>Tingkat Keamanan:</strong> ${result.security_info.is_secure ? 'Aman' : 'Legacy'}</p>
+                `;
+                
+                if (result.document_binding) {
+                    content += `
+                        <p><strong>Fingerprint Dokumen:</strong> ${result.document_binding.fingerprint_id}</p>
+                        <p><strong>Status Binding:</strong> ${result.document_binding.binding_status}</p>
+                        <p><strong>Berlaku Sampai:</strong> ${formatTimestamp(result.document_binding.expires_at)}</p>
+                    `;
+                }
+                
+                content += `</div>`;
+                showResult('secureQrResult', content, 'success');
+            } else {
+                showResult('secureQrResult', `<h4>❌ Pembuatan QR Gagal</h4><p>${result.message}</p>`, 'error');
+            }
+        } catch (error) {
+            showResult('secureQrResult', `<h4>❌ Error</h4><p>Error jaringan: ${error.message}</p>`, 'error');
+        } finally {
+            hideLoading('secureQrLoading');
+        }
+    });
+    
+    document.getElementById('validateBindingForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        showLoading('validateLoading');
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('/validate_qr_binding', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const validation = result.validation_result;
+                let content = '';
+                let type = 'success';
+                
+                if (validation.valid && validation.binding_verified) {
+                    content = `
+                        <h4>✅ Binding Berhasil Diverifikasi</h4>
+                        <div class="security-details">
+                            <p><strong>Status:</strong> <span class="status-secure">Aman</span></p>
+                            <p><strong>Pesan:</strong> ${validation.message}</p>
+                            <p><strong>Fingerprint Dokumen:</strong> ${validation.document_fingerprint}</p>
+                            <p><strong>Tingkat Keamanan:</strong> ${validation.security_level}</p>
+                            ${validation.issued_at ? `<p><strong>Dibuat:</strong> ${formatTimestamp(validation.issued_at)}</p>` : ''}
+                            ${validation.expires_at ? `<p><strong>Berlaku Sampai:</strong> ${formatTimestamp(validation.expires_at)}</p>` : ''}
+                        </div>
+                    `;
+                } else if (validation.valid && validation.is_legacy) {
+                    content = `
+                        <h4>⚠️ QR Code Legacy</h4>
+                        <div class="security-details">
+                            <p><strong>Status:</strong> <span class="status-legacy">Legacy</span></p>
+                            <p><strong>Pesan:</strong> ${validation.message}</p>
+                            <p><strong>Tingkat Keamanan:</strong> ${validation.security_level}</p>
+                            <br>
+                            <p><strong>Rekomendasi:</strong></p>
+                            <ul>${validation.recommendations?.map(r => `<li>${r}</li>`).join('') || '<li>Pertimbangkan untuk upgrade ke QR code aman</li>'}</ul>
+                        </div>
+                    `;
+                    type = 'warning';
+                } else {
+                    content = `
+                        <h4>❌ Verifikasi Binding Gagal</h4>
+                        <div class="security-details">
+                            <p><strong>Status:</strong> <span class="status-error">Gagal</span></p>
+                            <p><strong>Error:</strong> ${validation.error || 'Error tidak diketahui'}</p>
+                            <p><strong>Tipe Error:</strong> ${validation.error_type || 'TIDAK DIKETAHUI'}</p>
+                            <p><strong>Tingkat Keamanan:</strong> ${validation.security_level || 'tidak diketahui'}</p>
+                        </div>
+                    `;
+                    type = 'error';
+                }
+                
+                showResult('validateResult', content, type);
+            } else {
+                showResult('validateResult', `<h4>❌ Error Validasi</h4><p>${result.message}</p>`, 'error');
+            }
+        } catch (error) {
+            showResult('validateResult', `<h4>❌ Error</h4><p>Error jaringan: ${error.message}</p>`, 'error');
+        } finally {
+            hideLoading('validateLoading');
+        }
+    });
+    
+    document.getElementById('securityInfoForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        showLoading('infoLoading');
+        
+        const formData = new FormData(this);
+        
+        try {
+            const response = await fetch('/qr_security_info', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const info = result.security_info;
+                let content = '';
+                
+                if (info.success && info.is_secure) {
+                    content = `
+                        <h4>🔐 QR Code Aman Terdeteksi</h4>
+                        <div class="security-details">
+                            <p><strong>Status:</strong> <span class="status-secure">Aman</span></p>
+                            <p><strong>Versi:</strong> ${info.security_info.version}</p>
+                            <p><strong>Data Asli:</strong> ${info.security_info.original_data}</p>
+                            ${info.security_info.created_at ? `<p><strong>Dibuat:</strong> ${formatTimestamp(info.security_info.created_at)}</p>` : ''}
+                            
+                            ${info.security_info.binding_info && typeof info.security_info.binding_info === 'object' ? `
+                                <br>
+                                <p><strong>Informasi Binding:</strong></p>
+                                <ul>
+                                    <li><strong>Dibuat:</strong> ${formatTimestamp(info.security_info.binding_info.issued_at)}</li>
+                                    <li><strong>Berlaku Sampai:</strong> ${formatTimestamp(info.security_info.binding_info.expires_at)}</li>
+                                    <li><strong>Dokumen yang Diharapkan:</strong> ${info.security_info.binding_info.expected_fingerprint}</li>
+                                </ul>
+                            ` : `<p><strong>Info Binding:</strong> ${info.security_info.binding_info || 'Terenkripsi'}</p>`}
+                        </div>
+                    `;
+                } else if (info.success && !info.is_secure) {
+                    content = `
+                        <h4>📄 QR Code Legacy</h4>
+                        <div class="security-details">
+                            <p><strong>Status:</strong> <span class="status-legacy">Legacy</span></p>
+                            <p><strong>Versi:</strong> ${info.security_info.version}</p>
+                            <p><strong>Data Asli:</strong> ${info.security_info.original_data}</p>
+                            <p><strong>Status Binding:</strong> ${info.security_info.binding_status}</p>
+                            <br>
+                            <p style="color: #d97706;"><strong>Catatan:</strong> QR code ini tidak memiliki fitur keamanan binding dokumen.</p>
+                        </div>
+                    `;
+                } else {
+                    content = `
+                        <h4>❌ Error Membaca QR Code</h4>
+                        <p>${info.error || 'Tidak dapat mengekstrak informasi keamanan'}</p>
+                    `;
+                }
+                
+                showResult('infoResult', content, info.success ? (info.is_secure ? 'success' : 'warning') : 'error');
+            } else {
+                showResult('infoResult', `<h4>❌ Ekstraksi Informasi Gagal</h4><p>${result.message}</p>`, 'error');
+            }
+        } catch (error) {
+            showResult('infoResult', `<h4>❌ Error</h4><p>Error jaringan: ${error.message}</p>`, 'error');
+        } finally {
+            hideLoading('infoLoading');
+        }
+    });
+</script>
+    </div>
+</div>
+{% endblock %} 

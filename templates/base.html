@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Watermarking Bahan Ajar Digital{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/modern-layout.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="{% if request.endpoint == 'security' %}security-page{% endif %}">
+    <!-- Main Layout Container -->
+    <div class="main-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-qrcode"></i>
+                    <div class="logo-text">
+                        <h1>Watermarking</h1>
+                        <p>Bahan Ajar Digital</p>
+                    </div>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('index') }}" class="nav-link {% if request.endpoint == 'index' %}active{% endif %}">
+                    <i class="fas fa-qrcode"></i>
+                    <span>Buat QR Code</span>
+                </a>
+                <a href="{{ url_for('embed') }}" class="nav-link {% if request.endpoint == 'embed' %}active{% endif %}">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Sematkan Watermark</span>
+                </a>
+                <a href="{{ url_for('validate') }}" class="nav-link {% if request.endpoint == 'validate' %}active{% endif %}">
+                    <i class="fas fa-search"></i>
+                    <span>Validasi Dokumen</span>
+                </a>
+                <a href="{{ url_for('security') }}" class="nav-link {% if request.endpoint == 'security' %}active{% endif %}">
+                    <i class="fas fa-lock"></i>
+                    <span>Keamanan</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="creator-info">
+                    <p><i class="fas fa-user"></i> Arikal Khairat</p>
+                    <p><i class="fas fa-code"></i> Guru Pintar</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <div class="content-header">
+                <h2 class="page-title">
+                    {% if request.endpoint == 'index' %}
+                        <i class="fas fa-qrcode"></i> Generator QR Code
+                    {% elif request.endpoint == 'embed' %}
+                        <i class="fas fa-shield-alt"></i> Sematkan Watermark
+                    {% elif request.endpoint == 'validate' %}
+                        <i class="fas fa-search"></i> Validasi Dokumen
+                    {% elif request.endpoint == 'security' %}
+                        <i class="fas fa-lock"></i> Keamanan
+                    {% endif %}
+                </h2>
+                <div class="page-description">
+                    {% if request.endpoint == 'index' %}
+                        Buat QR Code kustom dengan analisis real-time dan optimasi steganografi
+                    {% elif request.endpoint == 'embed' %}
+                        Integrasikan QR code secara aman ke dalam dokumen menggunakan teknologi watermarking
+                    {% elif request.endpoint == 'validate' %}
+                        Verifikasi keaslian dokumen dan ekstrak informasi watermark tersembunyi
+                    {% elif request.endpoint == 'security' %}
+                        Kelola fitur keamanan lanjutan dan binding dokumen
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="content-body">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/common.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html> 

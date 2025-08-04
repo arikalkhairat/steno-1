@@ -1,0 +1,15 @@
+Flask
+python-docx
+qrcode
+Pillow
+pyzbar
+numpy
+PyMuPDF
+Werkzeug
+Jinja2
+MarkupSafe
+click
+itsdangerous
+colorama
+pathlib
+secrets

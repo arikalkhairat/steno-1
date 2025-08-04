@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block title %}Validasi Dokumen - Watermarking Bahan Ajar Digital{% endblock %}
+
+{% block content %}
+<div class="validate-desktop-layout">
+    <!-- Left Column: Upload and Configuration -->
+    <div class="validate-left-column">
+        <div class="upload-panel">
+            <div class="panel-header">
+                <i class="fas fa-upload"></i>
+                <h3>Upload Dokumen</h3>
+            </div>
+            <div class="panel-description">
+                Unggah dokumen DOCX atau PDF untuk ekstraksi dan validasi watermark QR Code tersembunyi.
+            </div>
+            
+            <form id="validateForm">
+                <div class="form-group">
+                    <label class="form-label">Dokumen (DOCX/PDF)</label>
+                    <div class="file-upload">
+                        <input type="file" id="docxFileValidate" name="docxFileValidate" 
+                               accept=".docx,.pdf" class="file-upload-input" required>
+                        <label for="docxFileValidate" class="file-upload-label">
+                            <i class="fas fa-file-text"></i>
+                            <span>Pilih dokumen DOCX atau PDF untuk validasi...</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-warning btn-large">
+                    <i class="fas fa-shield-alt"></i> 
+                    <span>Validasi Dokumen</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Validation Info Panel -->
+        <div class="info-panel">
+            <div class="panel-header">
+                <i class="fas fa-info-circle"></i>
+                <h3>Tentang Validasi</h3>
+            </div>
+            <div class="info-content">
+                <div class="info-item">
+                    <i class="fas fa-search"></i>
+                    <span>Deteksi otomatis watermark QR tersembunyi dalam gambar dokumen</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-shield-check"></i>
+                    <span>Verifikasi keaslian dan integritas dokumen</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-eye"></i>
+                    <span>Ekstraksi informasi keamanan dan metadata</span>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Analisis kualitas steganografi dan metrik</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Binding Validation Panel -->
+        <div class="binding-validation-panel hidden" id="bindingValidationPanel">
+            <div class="panel-header">
+                <i class="fas fa-link"></i>
+                <h3>Validasi Binding QR-Dokumen</h3>
+            </div>
+            <div class="panel-description">
+                QR Code ditemukan! Lakukan validasi binding untuk memverifikasi keaslian.
+            </div>
+            
+            <div class="binding-validation-form" id="bindingValidationForm">
+                <button type="button" class="btn btn-primary btn-large" onclick="validateBinding()">
+                    <i class="fas fa-shield-check"></i>
+                    <span>Validasi Binding QR-Dokumen</span>
+                </button>
+                
+                <div class="validation-options">
+                    <label class="checkbox-option">
+                        <input type="checkbox" id="deepValidation" checked>
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">Validasi mendalam (periksa semua aspek keamanan)</span>
+                    </label>
+                    
+                    <label class="checkbox-option">
+                        <input type="checkbox" id="checkExpiry" checked>
+                        <span class="checkmark"></span>
+                        <span class="checkbox-label">Periksa masa berlaku binding</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Results and Analysis -->
+    <div class="validate-right-column">
+        <!-- Progress Panel -->
+        <div class="progress-panel">
+            <div class="panel-header">
+                <i class="fas fa-cogs"></i>
+                <h3>Status Validasi</h3>
+            </div>
+            
+            <div class="progress-bar" id="validateProgress">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="progress-text" id="progressText">Siap untuk validasi</div>
+            <div class="alert" id="validateAlert"></div>
+        </div>
+        
+        <!-- Results Panel -->
+        <div class="results-panel" id="validateResult">
+            <div class="panel-header">
+                <i class="fas fa-qrcode"></i>
+                <h3>Hasil Ekstraksi QR Code</h3>
+                <div class="panel-status" id="qrStatus">
+                    <span class="status-badge status-pending">Menunggu validasi...</span>
+                </div>
+            </div>
+            <div class="panel-description">
+                Informasi QR Code yang ditemukan dalam dokumen akan ditampilkan di sini.
+            </div>
+            <div class="extracted-qrs" id="extractedQRs">
+                <div class="empty-state" id="emptyQRState">
+                    <i class="fas fa-search"></i>
+                    <p>Belum ada dokumen yang divalidasi</p>
+                    <small>Upload dokumen terlebih dahulu untuk melihat hasil ekstraksi QR Code</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Binding Validation Results Panel -->
+        <div class="binding-results-panel hidden" id="bindingResults">
+            <div class="panel-header">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Hasil Validasi Binding</h3>
+            </div>
+            <div class="binding-validation-content" id="bindingValidationContent"></div>
+        </div>
+
+        <!-- Security Analysis Panel -->
+        <div class="security-analysis-panel hidden" id="securityAnalysis">
+            <div class="panel-header">
+                <i class="fas fa-microscope"></i>
+                <h3>Analisis Keamanan</h3>
+            </div>
+            <div class="security-analysis-content" id="securityAnalysisContent"></div>
+        </div>
+
+        <!-- Validation Statistics Panel -->
+        <div class="statistics-panel hidden" id="validationStatistics">
+            <div class="panel-header">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Statistik Validasi</h3>
+            </div>
+            <div class="statistics-grid" id="statisticsGrid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-qrcode"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="qrCount">0</div>
+                        <div class="stat-label">QR Code Ditemukan</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-shield-check"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="validQrCount">0</div>
+                        <div class="stat-label">QR Valid</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="processingTime">0s</div>
+                        <div class="stat-label">Waktu Proses</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-star"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="confidenceScore">0%</div>
+                        <div class="stat-label">Tingkat Kepercayaan</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Process Details Panel -->
+        <div class="details-panel hidden" id="validateProcess">
+            <div class="panel-header">
+                <i class="fas fa-list-alt"></i>
+                <h3>Detail Proses Validasi</h3>
+            </div>
+            <div class="process-log" id="validateLog"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/validate.js') }}"></script>
+{% endblock %} 

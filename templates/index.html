@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Buat QR Code - Watermarking Bahan Ajar Digital{% endblock %}
+
+{% block content %}
+<div class="desktop-layout">
+    <!-- Main Content Grid -->
+    <div class="desktop-grid">
+        
+        <!-- Input Section - Top Left -->
+        <div class="input-section">
+            <div class="section-header">
+                <i class="fas fa-edit"></i>
+                <h3>Input & Konfigurasi</h3>
+            </div>
+            
+            <form id="generateForm">
+                <!-- QR Data Input -->
+                <div class="form-group">
+                    <label class="form-label" for="qrData">
+                        <i class="fas fa-keyboard"></i> Data QR Code
+                    </label>
+                    <textarea id="qrData" name="qrData" class="form-input qr-textarea" 
+                              placeholder="Masukkan teks untuk QR Code..." required rows="3"></textarea>
+                    
+                    <!-- Compact Character Counter -->
+                    <div class="character-counter-compact">
+                        <div class="counter-info">
+                            <span class="char-count" id="charCount">0</span>
+                            <span class="char-limit">/ 500</span>
+                            <span class="char-status" id="charStatus">Optimal</span>
+                        </div>
+                        <div class="counter-bar">
+                            <div class="counter-fill" id="counterFill"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Inline Configuration -->
+                <div class="config-inline">
+                    <div class="config-item">
+                        <label for="errorCorrection">Koreksi Kesalahan</label>
+                        <select id="errorCorrection" class="form-select-compact" title="Level koreksi error QR Code">
+                            <option value="L">L (7%)</option>
+                            <option value="M" selected>M (15%)</option>
+                            <option value="Q">Q (25%)</option>
+                            <option value="H">H (30%)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label for="qrSize">Ukuran</label>
+                        <select id="qrSize" class="form-select-compact" title="Ukuran QR Code">
+                            <option value="5">Kecil</option>
+                            <option value="8">Sedang</option>
+                            <option value="10" selected>Normal</option>
+                            <option value="15">Besar</option>
+                        </select>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label>Batas</label>
+                        <div class="range-compact">
+                            <input type="range" id="borderSize" min="1" max="10" value="4" class="form-range-compact" title="Ukuran border QR Code">
+                            <span class="range-value-compact" id="borderValue">4</span>
+                        </div>
+                    </div>
+                    
+                    <div class="config-item">
+                        <label>Warna</label>
+                        <div class="color-compact">
+                            <input type="color" id="fillColor" value="#000000" class="form-color-compact" title="Warna foreground QR Code">
+                            <input type="color" id="backColor" value="#ffffff" class="form-color-compact" title="Warna background QR Code">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Generate Button -->
+                <button type="submit" class="btn btn-generate-compact">
+                    <i class="fas fa-magic"></i>
+                    <span>Buat QR Code</span>
+                </button>
+            </form>
+        </div>
+        
+        <!-- Preview Section - Top Right -->
+        <div class="preview-section">
+            <div class="section-header">
+                <i class="fas fa-eye"></i>
+                <h3>Preview Real-time</h3>
+                <div class="preview-status" id="previewStatus">Siap</div>
+            </div>
+            
+            <div class="qr-preview-container-compact" id="qrPreviewContainer">
+                <div class="preview-placeholder">
+                    <i class="fas fa-qrcode"></i>
+                    <p>Pratinjau QR Code</p>
+                </div>
+            </div>
+            
+            <!-- Quick Analysis -->
+            <div class="quick-analysis" id="qrAnalysis">
+                <div class="analysis-row">
+                    <div class="analysis-metric">
+                        <i class="fas fa-tag"></i>
+                        <span class="metric-label">Ver</span>
+                        <span class="metric-value" id="qrVersion">-</span>
+                    </div>
+                    <div class="analysis-metric">
+                        <i class="fas fa-ruler-combined"></i>
+                        <span class="metric-label">Ukuran</span>
+                        <span class="metric-value" id="qrDimensions">-</span>
+                    </div>
+                    <div class="analysis-metric">
+                        <i class="fas fa-database"></i>
+                        <span class="metric-label">Kap</span>
+                        <span class="metric-value" id="qrCapacity">-</span>
+                    </div>
+                    <div class="analysis-metric">
+                        <i class="fas fa-percentage"></i>
+                        <span class="metric-label">Guna</span>
+                        <span class="metric-value" id="qrDensity">-</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Capacity Analysis - Bottom Left -->
+        <div class="capacity-section">
+            <div class="section-header">
+                <i class="fas fa-chart-bar"></i>
+                <h3>Analisis Kapasitas</h3>
+            </div>
+            
+            <!-- Usage Meter -->
+            <div class="usage-meter-compact">
+                <div class="meter-info">
+                    <span>Penggunaan:</span>
+                    <span class="meter-percentage" id="usagePercentage">0%</span>
+                </div>
+                <div class="meter-bar">
+                    <div class="meter-fill" id="usageFill"></div>
+                </div>
+            </div>
+            
+            <!-- Error Correction Levels -->
+            <div class="levels-compact">
+                <div class="level-item-compact" data-level="L">
+                    <span class="level-name">L</span>
+                    <span class="level-capacity" id="capacityL">-</span>
+                </div>
+                <div class="level-item-compact" data-level="M">
+                    <span class="level-name">M</span>
+                    <span class="level-capacity" id="capacityM">-</span>
+                </div>
+                <div class="level-item-compact" data-level="Q">
+                    <span class="level-name">Q</span>
+                    <span class="level-capacity" id="capacityQ">-</span>
+                </div>
+                <div class="level-item-compact" data-level="H">
+                    <span class="level-name">H</span>
+                    <span class="level-capacity" id="capacityH">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Steganography Info - Bottom Right -->
+        <div class="stego-section">
+            <div class="section-header">
+                <i class="fas fa-shield-alt"></i>
+                <h3>Kompatibilitas Steganografi</h3>
+            </div>
+            
+            <div class="stego-status-compact" id="stegoStatus">
+                <div class="status-indicator" id="stegoIndicator"></div>
+                <div class="status-content">
+                    <div class="status-text" id="stegoText">Menunggu masukan...</div>
+                </div>
+            </div>
+            
+            <div class="stego-tips">
+                <div class="tip-item">
+                    <i class="fas fa-lightbulb"></i>
+                    <span>Optimal: ≤ 50 karakter</span>
+                </div>
+                <div class="tip-item">
+                    <i class="fas fa-eye-slash"></i>
+                    <span>QR kecil = tidak terdeteksi</span>
+                </div>
+            </div>
+            
+            <!-- Live Suggestions -->
+            <div class="live-suggestions-compact" id="liveSuggestions"></div>
+        </div>
+    </div>
+    
+    <!-- Results Panel - Right Side -->
+    <div class="results-panel">
+        <div class="panel-header">
+            <i class="fas fa-chart-line"></i>
+            <h3>Hasil & Analisis</h3>
+        </div>
+        
+        <div class="progress-section">
+            <div class="progress-bar" id="generateProgress">
+                <div class="progress-fill"></div>
+            </div>
+            <div class="alert" id="generateAlert"></div>
+        </div>
+        
+        <div class="result-display" id="generateResult">
+            <div class="result-header">
+                <i class="fas fa-check-circle"></i>
+                <h4>QR Code Berhasil Dibuat</h4>
+            </div>
+            <div class="result-content">
+                <div class="qr-display" id="qrPreview"></div>
+                <div class="download-actions" id="qrDownload"></div>
+            </div>
+        </div>
+
+        <!-- Process Details -->
+        <div class="process-details" id="generateProcess" style="display: none;">
+            <div class="details-toggle" onclick="toggleProcessDetails()">
+                <i class="fas fa-cogs"></i>
+                <span>Detail Proses</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="details-content" id="processContent">
+                <div class="process-log" id="generateLog"></div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+function toggleProcessDetails() {
+    const content = document.getElementById('processContent');
+    const toggle = document.querySelector('.details-toggle');
+    const icon = toggle.querySelector('.fa-chevron-down');
+    
+    if (content.style.display === 'none' || !content.style.display) {
+        content.style.display = 'block';
+        icon.style.transform = 'rotate(180deg)';
+        toggle.classList.add('active');
+    } else {
+        content.style.display = 'none';
+        icon.style.transform = 'rotate(0deg)';
+        toggle.classList.remove('active');
+    }
+}
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/qr-generator.js') }}"></script>
+{% endblock %} 
