@@ -229,6 +229,8 @@ function initQRPreview() {
   const charCount = document.getElementById('charCount');
   const capacityAnalysis = document.getElementById('capacityAnalysis');
 
+  if (!qrDataInput || !charCount || !capacityAnalysis) return;
+
   let previewTimeout;
 
   qrDataInput.addEventListener('input', function () {
@@ -341,6 +343,8 @@ function initSecurityOptions() {
   const securityTitle = document.getElementById('securityTitle');
   const securitySubtitle = document.getElementById('securitySubtitle');
   const securityIcon = document.getElementById('securityIcon');
+
+  if (!securityToggle || !securityConfig || !securityTitle || !securitySubtitle || !securityIcon) return;
 
   securityToggle.addEventListener('change', function () {
     if (this.checked) {
@@ -1337,11 +1341,18 @@ function updateOverviewTab(result) {
 function updateImageStats(result) {
   const totalCount = document.getElementById('totalImagesCount');
   const processedCount = document.getElementById('processedImagesCount');
+  const statsContainer = document.getElementById('embedImageStats');
 
-  if (result.processed_images) {
-    const total = result.processed_images.length;
+  // Determine total images from result.total_images if available
+  const total = typeof result.total_images === 'number'
+    ? result.total_images
+    : (result.processed_images ? result.processed_images.length : 0);
 
-    if (totalCount) totalCount.textContent = total;
-    if (processedCount) processedCount.textContent = total;
+  if (totalCount) totalCount.textContent = total;
+  const processed = result.processed_images ? result.processed_images.length : 0;
+  if (processedCount) processedCount.textContent = processed;
+
+  if (statsContainer && (total > 0 || processed > 0)) {
+    statsContainer.style.display = 'flex';
   }
 }
