@@ -1140,19 +1140,21 @@ def embed_document_route():
                 process_result = embed_watermark_to_docx(doc_temp_path, qr_temp_path, stego_doc_output_path)
             else:  # is_pdf
                 process_result = embed_watermark_to_pdf(doc_temp_path, qr_temp_path, stego_doc_output_path)
-            
+
             # Get processed images info if available
             processed_images = []
             qr_image_url = ""
             public_dir = ""
             qr_info = None
-            
+            total_images = 0
+
             if isinstance(process_result, dict) and process_result.get("success"):
                 processed_images = process_result.get("processed_images", [])
                 qr_image_url = process_result.get("qr_image", "")
                 public_dir = process_result.get("public_dir", "")
                 qr_info = process_result.get("qr_info", None)
-                print(f"[*] Mendapatkan {len(processed_images)} gambar yang diproses")
+                total_images = process_result.get("total_images", len(processed_images))
+                print(f"[*] Mendapatkan {len(processed_images)} gambar yang diproses dari {total_images} gambar")
             else:
                 print("[!] Tidak mendapatkan detail gambar yang diproses")
         except ValueError as ve:
@@ -1175,6 +1177,7 @@ def embed_document_route():
             qr_image_url = ""
             public_dir = ""
             qr_info = None
+            total_images = 0
         
         # Hitung MSE dan PSNR (only for DOCX, PDF comparison is more complex)
         if is_docx:
@@ -1218,6 +1221,7 @@ def embed_document_route():
             "mse": metrics["mse"],
             "psnr": metrics["psnr"],
             "processed_images": processed_images,
+            "total_images": total_images,
             "qr_image": qr_image_url,
             "public_dir": public_dir,
             "qr_info": qr_info,
