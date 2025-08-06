@@ -38,6 +38,10 @@
                     <i class="fas fa-search"></i>
                     <span>Validasi Dokumen</span>
                 </a>
+                <a href="{{ url_for('validate_binding_page') }}" class="nav-link {% if request.endpoint == 'validate_binding_page' %}active{% endif %}">
+                    <i class="fas fa-link"></i>
+                    <span>Validasi QR-Doc</span>
+                </a>
                 <a href="{{ url_for('security') }}" class="nav-link {% if request.endpoint == 'security' %}active{% endif %}">
                     <i class="fas fa-lock"></i>
                     <span>Keamanan</span>
@@ -62,6 +66,8 @@
                         <i class="fas fa-shield-alt"></i> Sematkan Watermark
                     {% elif request.endpoint == 'validate' %}
                         <i class="fas fa-search"></i> Validasi Dokumen
+                    {% elif request.endpoint == 'validate_binding_page' %}
+                        <i class="fas fa-link"></i> Validasi QR-Doc
                     {% elif request.endpoint == 'security' %}
                         <i class="fas fa-lock"></i> Keamanan
                     {% endif %}
@@ -73,6 +79,8 @@
                         Integrasikan QR code secara aman ke dalam dokumen menggunakan teknologi watermarking
                     {% elif request.endpoint == 'validate' %}
                         Verifikasi keaslian dokumen dan ekstrak informasi watermark tersembunyi
+                    {% elif request.endpoint == 'validate_binding_page' %}
+                        Periksa kesesuaian QR code dengan watermark LSB dokumen
                     {% elif request.endpoint == 'security' %}
                         Kelola fitur keamanan lanjutan dan binding dokumen
                     {% endif %}

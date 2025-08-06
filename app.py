@@ -231,6 +231,11 @@ def embed():
 def validate():
     return render_template('validate.html')
 
+@app.route('/validate-binding')
+def validate_binding_page():
+    """Render page for validating QR code against a document."""
+    return render_template('validate_binding.html')
+
 @app.route('/security')
 def security():
     return render_template('security.html')
@@ -966,6 +971,85 @@ def validate_qr_binding_route():
             "success": False,
             "message": f"Validation error: {str(e)}"
         }), 500
+
+
+@app.route('/validate_document_qr', methods=['POST'])
+def validate_document_qr_route():
+    """Validate whether an uploaded QR image matches the watermark in a document."""
+    try:
+        if 'qrFile' not in request.files or 'docFile' not in request.files:
+            return jsonify({
+                "success": False,
+                "message": "QR code and document files are required",
+            }), 400
+
+        qr_file = request.files['qrFile']
+        doc_file = request.files['docFile']
+
+        if qr_file.filename == '' or doc_file.filename == '':
+            return jsonify({"success": False, "message": "File names cannot be empty"}), 400
+
+        if not allowed_file(qr_file.filename, ALLOWED_IMAGE_EXTENSIONS):
+            return jsonify({"success": False, "message": "QR file must be PNG"}), 400
+
+        is_docx = allowed_file(doc_file.filename, ALLOWED_DOCX_EXTENSIONS)
+        is_pdf = allowed_file(doc_file.filename, ALLOWED_PDF_EXTENSIONS)
+        if not (is_docx or is_pdf):
+            return jsonify({"success": False, "message": "Document must be DOCX or PDF"}), 400
+
+        # Save temporary files
+        qr_temp = os.path.join(app.config['UPLOAD_FOLDER'], f"validate_upload_{uuid.uuid4().hex}.png")
+        qr_file.save(qr_temp)
+
+        doc_ext = '.docx' if is_docx else '.pdf'
+        doc_temp = os.path.join(app.config['UPLOAD_FOLDER'], f"validate_doc_{uuid.uuid4().hex}{doc_ext}")
+        doc_file.save(doc_temp)
+
+        extract_dir = os.path.join(app.config['GENERATED_FOLDER'], f"validate_extract_{uuid.uuid4().hex}")
+
+        try:
+            uploaded_data_list = read_qr(qr_temp)
+            if not uploaded_data_list:
+                return jsonify({"success": False, "message": "Uploaded QR code could not be decoded"}), 400
+
+            uploaded_data = uploaded_data_list[0]
+
+            args = ['extract_docx', '--docx', doc_temp, '--output_dir', extract_dir] if is_docx else \
+                   ['extract_pdf', '--pdf', doc_temp, '--output_dir', extract_dir]
+            result = run_main_script(args)
+            if not result["success"]:
+                return jsonify({"success": False, "message": "Failed to extract document", "log": result.get("stderr", "")}), 500
+
+            matched = False
+            extracted_data = []
+            if os.path.exists(extract_dir):
+                for fname in os.listdir(extract_dir):
+                    if fname.lower().endswith('.png'):
+                        path = os.path.join(extract_dir, fname)
+                        data_list = read_qr(path)
+                        extracted_data.extend(data_list)
+                        if uploaded_data in data_list:
+                            matched = True
+                            break
+
+            message = "QR code matches document" if matched else "QR code does not match document"
+            return jsonify({
+                "success": True,
+                "matched": matched,
+                "uploaded_data": uploaded_data,
+                "extracted_data": extracted_data,
+                "message": message
+            })
+        finally:
+            if os.path.exists(qr_temp):
+                os.remove(qr_temp)
+            if os.path.exists(doc_temp):
+                os.remove(doc_temp)
+            if os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir, ignore_errors=True)
+    except Exception as e:
+        logger.error(f"Error in validate_document_qr_route: {str(e)}")
+        return jsonify({"success": False, "message": f"Validation error: {str(e)}"}), 500
 
 
 @app.route('/qr_security_info', methods=['POST'])
