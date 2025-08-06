@@ -1343,16 +1343,17 @@ function updateImageStats(result) {
   const processedCount = document.getElementById('processedImagesCount');
   const statsContainer = document.getElementById('embedImageStats');
 
-  // Determine total images from result.total_images if available
-  const total = typeof result.total_images === 'number'
-    ? result.total_images
-    : (result.processed_images ? result.processed_images.length : 0);
+  // Use provided totals, falling back gracefully when data is missing
+  const total = typeof result.total_images === 'number' ? result.total_images : '-';
+  const processed = Array.isArray(result.processed_images)
+    ? result.processed_images.length
+    : 0;
 
   if (totalCount) totalCount.textContent = total;
-  const processed = result.processed_images ? result.processed_images.length : 0;
   if (processedCount) processedCount.textContent = processed;
 
-  if (statsContainer && (total > 0 || processed > 0)) {
+  // Always display stats container for embedding results
+  if (statsContainer) {
     statsContainer.style.display = 'flex';
   }
 }
