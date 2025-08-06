@@ -1120,120 +1120,77 @@ def embed_document_route():
     documents_filename = f"watermarked_{uuid.uuid4().hex}{file_extension}"
     documents_output_path = os.path.join(app.config['DOCUMENTS_FOLDER'], documents_filename)
 
-    # Choose the appropriate command based on file type
-    if is_docx:
-        args = ['embed_docx', '--docx', doc_temp_path, '--qr', qr_temp_path, '--output', stego_doc_output_path]
-        print("[*] Memulai proses embed_docx")
-    else:  # is_pdf
-        args = ['embed_pdf', '--pdf', doc_temp_path, '--qr', qr_temp_path, '--output', stego_doc_output_path]
-        print("[*] Memulai proses embed_pdf")
-    
-    result = run_main_script(args)
+    # Perform embedding directly without subprocess
+    try:
+        print("[*] Memulai proses embed_docx" if is_docx else "[*] Memulai proses embed_pdf")
+        process_result = (
+            embed_watermark_to_docx(doc_temp_path, qr_temp_path, stego_doc_output_path)
+            if is_docx else
+            embed_watermark_to_pdf(doc_temp_path, qr_temp_path, stego_doc_output_path)
+        )
 
-    if result["success"]:
-        print("[*] Proses embed_docx berhasil")
-        
-        # Run the appropriate embed function directly to get the processed images
-        try:
-            print("[*] Mendapatkan informasi gambar yang diproses")
-            if is_docx:
-                process_result = embed_watermark_to_docx(doc_temp_path, qr_temp_path, stego_doc_output_path)
-            else:  # is_pdf
-                process_result = embed_watermark_to_pdf(doc_temp_path, qr_temp_path, stego_doc_output_path)
-            
-            # Get processed images info if available
-            processed_images = []
-            qr_image_url = ""
-            public_dir = ""
-            qr_info = None
-            
-            if isinstance(process_result, dict) and process_result.get("success"):
-                processed_images = process_result.get("processed_images", [])
-                qr_image_url = process_result.get("qr_image", "")
-                public_dir = process_result.get("public_dir", "")
-                qr_info = process_result.get("qr_info", None)
-                print(f"[*] Mendapatkan {len(processed_images)} gambar yang diproses")
-            else:
-                print("[!] Tidak mendapatkan detail gambar yang diproses")
-        except ValueError as ve:
-            if str(ve) == "NO_IMAGES_FOUND":
-                # Handle no images case
-                return jsonify({
-                    "success": False,
-                    "message": "Dokumen ini tidak mengandung gambar",
-                    "log": result["stderr"],
-                    "error_type": "NO_IMAGES_FOUND"
-                }), 400
-            print(f"[!] Error saat mendapatkan informasi gambar: {str(ve)}")
-            processed_images = []
-            qr_image_url = ""
-            public_dir = ""
-            qr_info = None
-        except Exception as e:
-            print(f"[!] Error saat mendapatkan informasi gambar: {str(e)}")
-            processed_images = []
-            qr_image_url = ""
-            public_dir = ""
-            qr_info = None
-        
-        # Hitung MSE dan PSNR (only for DOCX, PDF comparison is more complex)
+        if not isinstance(process_result, dict) or not process_result.get("success"):
+            raise ValueError(process_result.get("error", "Embedding failed"))
+
+        processed_images = process_result.get("processed_images", [])
+        qr_image_url = process_result.get("qr_image", "")
+        public_dir = process_result.get("public_dir", "")
+        qr_info = process_result.get("qr_info", None)
+        total_images = process_result.get("total_images", len(processed_images))
+        log_output = process_result.get("log", "")
+        print(f"[*] Mendapatkan {len(processed_images)} gambar yang diproses dari {total_images} gambar")
+
         if is_docx:
             metrics = calculate_metrics(doc_temp_path, stego_doc_output_path)
         else:
-            # For PDF, we skip MSE/PSNR calculation as it's more complex
             metrics = {"mse": None, "psnr": None, "info": "PDF metrics calculation not implemented"}
         print(f"[*] Metrik MSE: {metrics['mse']}, PSNR: {metrics['psnr']}")
 
-        # Salin dokumen hasil ke folder documents untuk akses permanen
         try:
             shutil.copy2(stego_doc_output_path, documents_output_path)
             print(f"[*] Dokumen hasil disalin ke: {documents_output_path}")
         except Exception as e:
             print(f"[!] Warning: Gagal menyalin dokumen ke folder documents: {str(e)}")
 
-        # Baca data QR code untuk ditampilkan
         qr_data = None
         try:
             qr_data_list = read_qr(qr_temp_path)
             if qr_data_list:
-                qr_data = qr_data_list[0]  # Ambil data QR pertama
+                qr_data = qr_data_list[0]
                 print(f"[*] Data QR Code: {qr_data}")
         except Exception as e:
             print(f"[!] Warning: Tidak dapat membaca data QR Code: {str(e)}")
 
-        # Hapus file temporary setelah perhitungan metrik
         if os.path.exists(doc_temp_path):
             os.remove(doc_temp_path)
         if os.path.exists(qr_temp_path):
             os.remove(qr_temp_path)
 
-        # Prepare success response
         response_data = {
             "success": True,
             "message": f"Watermark berhasil disisipkan ke {'dokumen' if is_docx else 'PDF'}!",
             "download_url": f"/download_generated/{stego_doc_filename}",
             "documents_url": f"/download_documents/{documents_filename}",
             "documents_filename": documents_filename,
-            "log": result["stdout"],
+            "log": log_output,
             "mse": metrics["mse"],
             "psnr": metrics["psnr"],
             "processed_images": processed_images,
+            "total_images": total_images,
             "qr_image": qr_image_url,
             "public_dir": public_dir,
             "qr_info": qr_info,
             "qr_data": qr_data,
-            "document_type": "docx" if is_docx else "pdf"
+            "document_type": "docx" if is_docx else "pdf",
         }
-        
-        # Add security verification results if enabled
+
         if enable_security_check and security_verification_result:
             response_data["security_verification"] = {
                 "enabled": True,
                 "result": security_verification_result,
-                "status": "verified" if security_verification_result.get('valid') else "failed"
+                "status": "verified" if security_verification_result.get('valid') else "failed",
             }
-            
-            # Add specific security information if available
+
             if security_verification_result.get('valid'):
                 if security_verification_result.get('is_legacy'):
                     response_data["security_verification"]["message"] = "QR code verified (legacy format - no binding)"
@@ -1244,28 +1201,27 @@ def embed_document_route():
                     response_data["security_verification"]["binding_info"] = {
                         "fingerprint_id": security_verification_result.get('document_fingerprint'),
                         "expires_at": security_verification_result.get('expires_at'),
-                        "issued_at": security_verification_result.get('issued_at')
+                        "issued_at": security_verification_result.get('issued_at'),
                     }
         else:
             response_data["security_verification"] = {
                 "enabled": False,
-                "message": "Security verification was disabled for this embedding"
+                "message": "Security verification was disabled for this embedding",
             }
-        
+
         return jsonify(response_data)
-    else:
-        # Hapus file temporary jika terjadi error
+
+    except ValueError as ve:
         if os.path.exists(doc_temp_path):
             os.remove(doc_temp_path)
         if os.path.exists(qr_temp_path):
             os.remove(qr_temp_path)
 
-        # Check for the specific "NO_IMAGES_FOUND" error
-        if result["stderr"] and "NO_IMAGES_FOUND" in result["stderr"]:
+        if str(ve) == "NO_IMAGES_FOUND":
             return jsonify({
                 "success": False,
                 "message": f"{'Dokumen' if is_docx else 'PDF'} yang dipilih tidak mengandung gambar. Silakan pilih dokumen yang memiliki setidaknya satu gambar untuk proses watermarking.",
-                "log": result["stderr"],
+                "log": str(ve),
                 "error_type": "NO_IMAGES_FOUND",
                 "recommendations": [
                     f"Pastikan {'dokumen DOCX' if is_docx else 'file PDF'} mengandung setidaknya satu gambar",
@@ -1274,11 +1230,23 @@ def embed_document_route():
                     "Coba gunakan dokumen lain yang memiliki gambar"
                 ]
             }), 400
-        
+
         return jsonify({
             "success": False,
             "message": "Gagal menyisipkan watermark.",
-            "log": result["stderr"] or result.get("error", "Error tidak diketahui")
+            "log": str(ve)
+        }), 500
+
+    except Exception as e:
+        if os.path.exists(doc_temp_path):
+            os.remove(doc_temp_path)
+        if os.path.exists(qr_temp_path):
+            os.remove(qr_temp_path)
+        print(f"[!] Proses embedding gagal: {e}")
+        return jsonify({
+            "success": False,
+            "message": "Gagal menyisipkan watermark pada dokumen",
+            "log": str(e)
         }), 500
 
 
